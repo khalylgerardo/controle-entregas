@@ -17,6 +17,13 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 const K_NOME = 'gp.controle.nome';
 const K_SEL = 'gp.controle.empresa';
 
+const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const MESES_LONGO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+                     'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const ANO = new Date().getFullYear();
+/* chave "AAAA-MM": o ano vai junto para o controle virar de ano sem migracao */
+const chaveMes = (i) => ANO + '-' + String(i + 1).padStart(2, '0');
+
 let EMPRESAS = [];
 let ITENS = new Map();        // codigo -> [linhas de ctrl_itens]
 let OBS = new Map();          // codigo -> [observacoes]
@@ -184,6 +191,24 @@ function cardDe(it) {
     seg.append(b);
   }
 
+  const mt = document.createElement('div');
+  mt.className = 'meses-t';
+  mt.append(
+    Object.assign(document.createElement('span'), { textContent: 'Meses' }),
+    Object.assign(document.createElement('b'), { textContent: String(ANO) })
+  );
+
+  const meses = document.createElement('div');
+  meses.className = 'meses';
+  MESES.forEach((nome, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mes';
+    b.dataset.mes = chaveMes(i);
+    b.textContent = nome;
+    meses.append(b);
+  });
+
   const ta = document.createElement('textarea');
   ta.className = 'card-obs';
   ta.placeholder = 'Observação sobre este item…';
@@ -196,8 +221,19 @@ function cardDe(it) {
     ? `${it.atualizado_por} · ${agora(it.atualizado_em)}`
     : '';
 
-  card.append(h, seg, ta, pe);
+  card.append(h, seg, mt, meses, ta, pe);
+  pintarMeses(card, it);
   return card;
+}
+
+function pintarMeses(card, it) {
+  const m = it.meses || {};
+  qsa('.mes', card).forEach((b, i) => {
+    const v = m[b.dataset.mes];
+    if (v) b.setAttribute('data-m', v); else b.removeAttribute('data-m');
+    b.title = `${MESES_LONGO[i]} de ${ANO} — ` +
+      (v === 'tem' ? 'tem' : v === 'nao' ? 'não tem' : 'não avaliado');
+  });
 }
 
 function cardNovo() {
@@ -264,8 +300,20 @@ function repintarCard(it) {
   });
   const ta = qs('.card-obs', card);
   if (document.activeElement !== ta) ta.value = it.observacao || '';
+  pintarMeses(card, it);
   qs('.card-pe', card).textContent = it.atualizado_por
     ? `${it.atualizado_por} · ${agora(it.atualizado_em)}` : '';
+}
+
+/* nao avaliado -> tem -> nao tem -> nao avaliado */
+function alternarMes(id, chave) {
+  const it = acharItem(id);
+  if (!it) return;
+  const atual = (it.meses || {})[chave];
+  const proximo = !atual ? 'tem' : atual === 'tem' ? 'nao' : null;
+  const meses = { ...(it.meses || {}) };
+  if (proximo) meses[chave] = proximo; else delete meses[chave];
+  gravarItem(id, { meses });
 }
 
 /* --------------------------------------------------------- gravar ------- */
@@ -281,14 +329,17 @@ async function gravarItem(id, patch) {
   const it = acharItem(id);
   if (!it) return;
   const antes = { ...it };
-  Object.assign(it, patch, { atualizado_por: meuNome(), atualizado_em: new Date().toISOString() });
+  /* atualizado_em NAO entra aqui de proposito: quem carimba e o servidor.
+     Manter o carimbo antigo garante que o eco que voltar seja sempre mais
+     novo que o local, e a comparacao no tempo real resolve a corrida. */
+  Object.assign(it, patch, { atualizado_por: meuNome() });
   repintarCard(it);
   atualizarKpis();
   montarSeletorEmpresas();
 
   sync('salvando');
   const { error } = await sb.from('ctrl_itens')
-    .update({ ...patch, atualizado_por: meuNome(), atualizado_em: new Date().toISOString() })
+    .update({ ...patch, atualizado_por: meuNome() })
     .eq('id', id);
 
   if (error) {
@@ -481,13 +532,30 @@ function aplicarObsLocal(tipo, linha) {
 }
 
 /* ------------------------------------------------------------- PDF ------ */
+/* "Meses 2026 — tem: Jan, Fev | não tem: Mar" (vazio se nada foi marcado) */
+function resumoMeses(it) {
+  const m = it.meses || {};
+  const tem = [], nao = [];
+  MESES.forEach((nome, i) => {
+    const v = m[chaveMes(i)];
+    if (v === 'tem') tem.push(nome);
+    else if (v === 'nao') nao.push(nome);
+  });
+  if (!tem.length && !nao.length) return '';
+  const p = [];
+  if (tem.length) p.push('tem: ' + tem.join(', '));
+  if (nao.length) p.push('não tem: ' + nao.join(', '));
+  return `Meses ${ANO} — ${p.join('  |  ')}`;
+}
+
 function dadosEmpresa(cod) {
   const e = EMPRESAS.find((x) => x.codigo === cod);
   const c = contagem(cod);
   return {
     empresa: e,
     itens: itensDe(cod).map((i) => ({
-      item: i.item, valor: i.valor || '', observacao: i.observacao || '',
+      item: i.item, valor: i.valor || '',
+      observacao: [resumoMeses(i), i.observacao].filter(Boolean).join('\n'),
       quem: i.atualizado_por || '', quando: i.atualizado_por ? agora(i.atualizado_em) : ''
     })),
     observacoes: (OBS.get(cod) || []).map((o) => ({
@@ -582,6 +650,12 @@ function ligarEventos() {
       return;
     }
 
+    const mes = t.closest('.mes');
+    if (mes) {
+      alternarMes(mes.closest('.card').dataset.id, mes.dataset.mes);
+      return;
+    }
+
     const x = t.closest('.card-x');
     if (x) {
       if (!x.hasAttribute('data-confirm')) {
@@ -644,8 +718,14 @@ function ligarEventos() {
 /* ---------------------------------------------------------- inicio ------ */
 function ouvirTempoReal() {
   sb.channel('controle-entregas')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'ctrl_itens' },
-      (p) => aplicarItemLocal(p.eventType, p.eventType === 'DELETE' ? p.old : p.new))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'ctrl_itens' }, (p) => {
+      if (p.eventType === 'DELETE') { aplicarItemLocal('DELETE', p.old); return; }
+      /* Descarta eco atrasado: so aplica o que for mais novo que o local.
+         Todos os carimbos vem do relogio do servidor, entao da para comparar. */
+      const atual = acharItem(p.new.id);
+      if (atual && atual.atualizado_em && p.new.atualizado_em <= atual.atualizado_em) return;
+      aplicarItemLocal(p.eventType, p.new);
+    })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ctrl_observacoes' },
       (p) => aplicarObsLocal(p.eventType, p.eventType === 'DELETE' ? p.old : p.new))
     .subscribe();

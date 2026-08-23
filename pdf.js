@@ -195,15 +195,15 @@
 
   /* ---------- relatorio ---------- */
   var C = {
-    ink:   [0.05, 0.14, 0.16],
-    muted: [0.35, 0.45, 0.47],
-    brand: [0.06, 0.43, 0.47],
-    line:  [0.82, 0.87, 0.87],
-    head:  [0.90, 0.94, 0.94],
-    zebra: [0.972, 0.982, 0.982],
-    ok:    [0.18, 0.49, 0.32],
-    no:    [0.70, 0.23, 0.19],
-    warn:  [0.66, 0.45, 0.10]
+    ink:   [0.106, 0.125, 0.157],   /* grafite */
+    muted: [0.420, 0.460, 0.525],
+    brand: [0.102, 0.306, 0.541],   /* azul */
+    line:  [0.820, 0.835, 0.871],
+    head:  [0.906, 0.914, 0.933],
+    zebra: [0.969, 0.973, 0.980],
+    ok:    [0.184, 0.435, 0.310],
+    no:    [0.663, 0.231, 0.192],
+    warn:  [0.627, 0.486, 0.086]    /* dourado */
   };
 
   var M = 28, BOTTOM = 26;
@@ -364,7 +364,7 @@
     ctx.cols = escalar([
       { key: 'item', label: 'Item', w: 150, align: 'l', wrap: 2, bold: true },
       { key: 'valor', label: 'Situacao', w: 52, align: 'c', flag: true },
-      { key: 'observacao', label: 'Observacao', w: 245, align: 'l', wrap: 4 },
+      { key: 'observacao', label: 'Observacao', w: 245, align: 'l', wrap: 6 },
       { key: 'quem', label: 'Atualizado por', w: 92, align: 'l', wrap: 2 }
     ], A4_RETRATO[0] - M * 2);
 
