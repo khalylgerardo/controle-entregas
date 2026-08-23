@@ -1,7 +1,12 @@
 # Controle de Entregas — GrupoPro
 
+**https://controle.proativaaccounting.com.br**
+
 Controle de conferência contábil por empresa. Página estática servida pelo
-GitHub Pages, com os dados em Postgres (Supabase).
+GitHub Pages sob domínio próprio, com os dados em Postgres (Supabase).
+
+O DNS mora na HostGator (registro CNAME `controle` -> `khalylgerardo.github.io`);
+o endereço antigo `khalylgerardo.github.io/controle-entregas` redireciona para cá.
 
 ## Como funciona
 
