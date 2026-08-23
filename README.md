@@ -8,6 +8,9 @@ GitHub Pages, com os dados em Postgres (Supabase).
 Escolha a empresa no seletor do topo. A ficha abre com um card por item de
 conferência — cada card tem **Sim / Não** e um campo de observação daquele item.
 O card `+` no fim da grade cria um item novo só para aquela empresa.
+Qualquer card pode ser renomeado (clique no título) ou excluído — inclusive os
+que vêm por padrão, porque o que vale numa empresa não vale em outra. A exclusão
+pede confirmação em dois cliques e vale só para aquela empresa.
 
 Abaixo dos cards fica a thread de **observações gerais** da empresa: cada
 registro é assinado com o nome preenchido em "Seu nome" e pode ser editado ou

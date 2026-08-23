@@ -168,16 +168,20 @@ function cardDe(it) {
   card.dataset.id = it.id;
   card.setAttribute('data-v', it.valor || '');
 
+  /* Todo card e editavel: o que vale numa empresa nao vale em outra.
+     O flag `padrao` fica so como procedencia, nao trava mais nada. */
   const h = document.createElement('div');
   h.className = 'card-h';
-  h.append(Object.assign(document.createElement('span'), { className: 'card-t', textContent: it.item }));
-  if (!it.padrao) {
-    const x = document.createElement('button');
-    x.type = 'button';
-    x.className = 'card-x';
-    x.title = 'Excluir este item';
-    h.append(x);
-  }
+  const t = document.createElement('button');
+  t.type = 'button';
+  t.className = 'card-t';
+  t.textContent = it.item;
+  t.title = 'Clique para renomear';
+  const x = document.createElement('button');
+  x.type = 'button';
+  x.className = 'card-x';
+  x.title = 'Excluir este item';
+  h.append(t, x);
 
   const seg = document.createElement('div');
   seg.className = 'seg';
@@ -298,11 +302,65 @@ function repintarCard(it) {
   qsa('.seg button', card).forEach((b) => {
     if (b.dataset.v === it.valor) b.setAttribute('data-on', ''); else b.removeAttribute('data-on');
   });
+  /* nulo quando o titulo esta em edicao: nao atropela quem esta digitando */
+  const t = qs('.card-t', card);
+  if (t) t.textContent = it.item;
   const ta = qs('.card-obs', card);
   if (document.activeElement !== ta) ta.value = it.observacao || '';
   pintarMeses(card, it);
   qs('.card-pe', card).textContent = it.atualizado_por
     ? `${it.atualizado_por} · ${agora(it.atualizado_em)}` : '';
+}
+
+/* ---- renomear o item ---- */
+function abrirRenomear(card) {
+  const btn = qs('.card-t', card);
+  if (!btn) return;                       /* ja esta em edicao */
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.className = 'card-t-edit';
+  inp.maxLength = 60;
+  inp.value = btn.textContent;
+  inp.setAttribute('aria-label', 'Renomear item');
+  btn.replaceWith(inp);
+  inp.focus();
+  inp.select();
+}
+
+function fecharRenomear(card, nome) {
+  const inp = qs('.card-t-edit', card);
+  if (!inp) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'card-t';
+  btn.textContent = nome;
+  btn.title = 'Clique para renomear';
+  inp.replaceWith(btn);
+}
+
+/* aoSairDoCampo: no blur nao insistimos — volta ao nome antigo em vez de
+   prender a pessoa num campo que ela ja abandonou. */
+function renomearItem(card, aoSairDoCampo) {
+  const inp = qs('.card-t-edit', card);
+  if (!inp) return;
+  const it = acharItem(card.dataset.id);
+  if (!it) { fecharRenomear(card, ''); return; }
+
+  const novo = inp.value.trim();
+  if (!novo || novo === it.item) { fecharRenomear(card, it.item); return; }
+
+  const repetido = (ITENS.get(it.codigo) || [])
+    .some((o) => o.id !== it.id && normalizar(o.item) === normalizar(novo));
+  if (repetido) {
+    if (aoSairDoCampo) { fecharRenomear(card, it.item); return; }
+    toast('Já existe um item com esse nome nesta empresa.', 'erro');
+    inp.focus();
+    inp.select();
+    return;
+  }
+
+  fecharRenomear(card, novo);
+  gravarItem(it.id, { item: novo });
 }
 
 /* nao avaliado -> tem -> nao tem -> nao avaliado */
@@ -391,7 +449,7 @@ async function criarItem(nome) {
 
 async function excluirItem(id) {
   const it = acharItem(id);
-  if (!it || it.padrao) return;
+  if (!it) return;
   sync('salvando');
   const { error } = await sb.from('ctrl_itens').delete().eq('id', id);
   if (error) { sync('erro', error.message); toast('Não consegui excluir o item.', 'erro'); return; }
@@ -650,6 +708,9 @@ function ligarEventos() {
       return;
     }
 
+    const titulo = t.closest('.card-t');
+    if (titulo) { abrirRenomear(titulo.closest('.card')); return; }
+
     const mes = t.closest('.mes');
     if (mes) {
       alternarMes(mes.closest('.card').dataset.id, mes.dataset.mes);
@@ -703,7 +764,24 @@ function ligarEventos() {
     if (ev.target.id === 'obs-texto') qs('#obs-aviso').textContent = '';
   });
 
+  /* focusout sobe na arvore; blur nao — por isso o listener e neste evento */
+  document.addEventListener('focusout', (ev) => {
+    const inp = ev.target.closest && ev.target.closest('.card-t-edit');
+    if (inp) renomearItem(inp.closest('.card'), true);
+  });
+
   document.addEventListener('keydown', (ev) => {
+    const inp = ev.target.closest && ev.target.closest('.card-t-edit');
+    if (inp) {
+      const card = inp.closest('.card');
+      if (ev.key === 'Enter') { ev.preventDefault(); renomearItem(card, false); }
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        const it = acharItem(card.dataset.id);
+        fecharRenomear(card, it ? it.item : '');
+      }
+      return;
+    }
     if (ev.target.id === 'novo-nome') {
       if (ev.key === 'Enter') { ev.preventDefault(); criarItem(ev.target.value); }
       if (ev.key === 'Escape') { ev.preventDefault(); fecharFormNovo(); }
