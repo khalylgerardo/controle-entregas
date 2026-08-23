@@ -873,3 +873,48 @@ dialog#dlg-usuarios::backdrop { background: rgba(6, 7, 9, .6); }
   padding-bottom: 9px;
   white-space: nowrap;
 }
+
+/* Cabecalho de dialogo. Estes estilos existiam para o antigo modal de
+   observacoes e sumiram quando ele deixou de existir — o painel de usuarios
+   ficou usando classes orfas, sem layout nenhum. */
+.dlg-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 18px 13px;
+  border-bottom: 2px solid var(--brand);
+}
+.dlg-head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.dlg-cod {
+  margin: 0 0 3px;
+  font-family: var(--display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.dlg-x {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.dlg-x::after { content: "\00d7"; }
+.dlg-x:hover { background: var(--no-bg); border-color: var(--no); color: var(--no); }
