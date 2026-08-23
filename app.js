@@ -14,7 +14,6 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
   realtime: { params: { eventsPerSecond: 5 } }
 });
 
-const K_NOME = 'gp.controle.nome';
 const K_SEL = 'gp.controle.empresa';
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -32,7 +31,6 @@ let editandoObsId = null;
 
 const qs = (s, r) => (r || document).querySelector(s);
 const qsa = (s, r) => [...(r || document).querySelectorAll(s)];
-const meuNome = () => qs('#eu').value.trim();
 
 const normalizar = (s) => String(s || '').normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '').toUpperCase();
@@ -221,9 +219,7 @@ function cardDe(it) {
 
   const pe = document.createElement('p');
   pe.className = 'card-pe';
-  pe.textContent = it.atualizado_por
-    ? `${it.atualizado_por} · ${agora(it.atualizado_em)}`
-    : '';
+  pe.textContent = it.atualizado_em ? 'Atualizado em ' + agora(it.atualizado_em) : '';
 
   card.append(h, seg, mt, meses, ta, pe);
   pintarMeses(card, it);
@@ -308,8 +304,7 @@ function repintarCard(it) {
   const ta = qs('.card-obs', card);
   if (document.activeElement !== ta) ta.value = it.observacao || '';
   pintarMeses(card, it);
-  qs('.card-pe', card).textContent = it.atualizado_por
-    ? `${it.atualizado_por} · ${agora(it.atualizado_em)}` : '';
+  qs('.card-pe', card).textContent = it.atualizado_em ? 'Atualizado em ' + agora(it.atualizado_em) : '';
 }
 
 /* ---- renomear o item ---- */
@@ -390,14 +385,14 @@ async function gravarItem(id, patch) {
   /* atualizado_em NAO entra aqui de proposito: quem carimba e o servidor.
      Manter o carimbo antigo garante que o eco que voltar seja sempre mais
      novo que o local, e a comparacao no tempo real resolve a corrida. */
-  Object.assign(it, patch, { atualizado_por: meuNome() });
+  Object.assign(it, patch);
   repintarCard(it);
   atualizarKpis();
   montarSeletorEmpresas();
 
   sync('salvando');
   const { error } = await sb.from('ctrl_itens')
-    .update({ ...patch, atualizado_por: meuNome() })
+    .update(patch)
     .eq('id', id);
 
   if (error) {
@@ -432,8 +427,7 @@ async function criarItem(nome) {
   sync('salvando');
 
   const { data, error } = await sb.from('ctrl_itens').insert({
-    codigo: sel, item: limpo, ordem: maior + 1, padrao: false,
-    atualizado_por: meuNome()
+    codigo: sel, item: limpo, ordem: maior + 1, padrao: false
   }).select().single();
 
   if (error) {
@@ -497,16 +491,12 @@ function renderObs() {
 
     const top = document.createElement('div');
     top.className = 'obs-top';
-    top.append(
-      Object.assign(document.createElement('span'),
-        { className: 'obs-who', textContent: o.autor || 'sem assinatura' }),
-      Object.assign(document.createElement('span'), {
-        className: 'obs-when',
-        textContent: o.editado_em
-          ? `${agora(o.criado_em)} · editado por ${o.editado_por || '—'} em ${agora(o.editado_em)}`
-          : agora(o.criado_em)
-      })
-    );
+    top.append(Object.assign(document.createElement('span'), {
+      className: 'obs-when',
+      textContent: o.editado_em
+        ? `${agora(o.criado_em)} · editada em ${agora(o.editado_em)}`
+        : agora(o.criado_em)
+    }));
 
     const p = Object.assign(document.createElement('p'), { className: 'obs-text', textContent: o.texto });
     const acts = document.createElement('div');
@@ -531,26 +521,19 @@ async function salvarObs() {
   if (!sel) return;
   const texto = qs('#obs-texto').value.trim();
   if (!texto) { qs('#obs-aviso').textContent = 'Escreva a observação antes de salvar.'; return; }
-  const autor = meuNome();
-  if (!autor) {
-    qs('#obs-aviso').textContent = 'Preencha "seu nome" no topo para assinar.';
-    qs('#eu').focus();
-    return;
-  }
-
   const btn = qs('#obs-salvar');
   btn.disabled = true;
   sync('salvando');
   try {
     if (editandoObsId) {
       const { data, error } = await sb.from('ctrl_observacoes')
-        .update({ texto, editado_em: new Date().toISOString(), editado_por: autor })
+        .update({ texto, editado_em: new Date().toISOString() })
         .eq('id', editandoObsId).select().single();
       if (error) throw error;
       aplicarObsLocal('UPDATE', data);
     } else {
       const { data, error } = await sb.from('ctrl_observacoes')
-        .insert({ codigo: sel, autor, texto }).select().single();
+        .insert({ codigo: sel, texto }).select().single();
       if (error) throw error;
       aplicarObsLocal('INSERT', data);
     }
@@ -614,10 +597,10 @@ function dadosEmpresa(cod) {
     itens: itensDe(cod).map((i) => ({
       item: i.item, valor: i.valor || '',
       observacao: [resumoMeses(i), i.observacao].filter(Boolean).join('\n'),
-      quem: i.atualizado_por || '', quando: i.atualizado_por ? agora(i.atualizado_em) : ''
+      quando: i.atualizado_em ? agora(i.atualizado_em) : ''
     })),
     observacoes: (OBS.get(cod) || []).map((o) => ({
-      autor: o.autor || 'sem assinatura', data: agora(o.criado_em), texto: o.texto
+      data: agora(o.criado_em), texto: o.texto
     })),
     resumo: `${c.sim} de ${c.total} itens conferidos · ${c.nao} com pendência · ${c.branco} em branco`
   };
@@ -628,7 +611,7 @@ function pdfEmpresa() {
   const d = dadosEmpresa(sel);
   baixar(window.ControlePDF.buildEmpresa({
     ...d,
-    emitido: 'Emitido em ' + agora() + (meuNome() ? ' por ' + meuNome() : ''),
+    emitido: 'Emitido em ' + agora(),
     rodape: 'GrupoPro · Controle de Entregas Contábil — uso interno'
   }), `Controle_${d.empresa.codigo}_${dataArquivo()}.pdf`, 1);
 }
@@ -658,7 +641,7 @@ function pdfGeral() {
 
   baixar(window.ControlePDF.buildResumo({
     rows,
-    emitido: 'Emitido em ' + agora() + (meuNome() ? ' por ' + meuNome() : ''),
+    emitido: 'Emitido em ' + agora(),
     filtros: p.length ? p.join(' · ') : 'nenhum (todas as empresas)',
     resumo: `${rows.length} ${rows.length === 1 ? 'empresa' : 'empresas'} · ${ok} completas · ${pend} com pendência`,
     rodape: 'GrupoPro · Controle de Entregas Contábil — uso interno'
@@ -685,10 +668,6 @@ function ligarEventos() {
   ['f-grupo', 'f-regime', 'f-periodo'].forEach((id) =>
     qs('#' + id).addEventListener('change', montarSeletorEmpresas));
   qs('#f-busca').addEventListener('input', montarSeletorEmpresas);
-
-  qs('#eu').addEventListener('input', function () {
-    try { localStorage.setItem(K_NOME, this.value); } catch { /* privado */ }
-  });
 
   qs('#btn-pdf').addEventListener('click', pdfEmpresa);
   qs('#btn-pdf-geral').addEventListener('click', pdfGeral);
@@ -811,8 +790,6 @@ function ouvirTempoReal() {
 
 async function iniciar() {
   ligarEventos();
-  try { qs('#eu').value = localStorage.getItem(K_NOME) || ''; } catch { /* privado */ }
-
   const [emp, itens, obs] = await Promise.all([
     sb.from('ctrl_empresas').select('*').order('ordem'),
     sb.from('ctrl_itens').select('*'),

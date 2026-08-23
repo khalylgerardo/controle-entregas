@@ -13,8 +13,10 @@ que vêm por padrão, porque o que vale numa empresa não vale em outra. A exclu
 pede confirmação em dois cliques e vale só para aquela empresa.
 
 Abaixo dos cards fica a thread de **observações gerais** da empresa: cada
-registro é assinado com o nome preenchido em "Seu nome" e pode ser editado ou
-excluído.
+registro fica datado e pode ser editado ou excluído.
+
+Não há login nem identificação: qualquer pessoa com o link edita e emite
+relatório. Os registros guardam a data, não o autor.
 
 Duas saídas em PDF:
 

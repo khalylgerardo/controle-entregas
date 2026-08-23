@@ -8,61 +8,63 @@
      conta propria — ignorando ate background inline. */
   color-scheme: light dark;
 
-  --bg:        #F1F2F5;
+  --bg:        #F2F2F4;
   --surface:   #FFFFFF;
-  --surface-2: #E7E9EE;
-  --surface-3: #F7F8FA;
-  --line:      #D1D5DE;
-  --line-soft: #E4E7ED;
+  --surface-2: #E8E9EC;
+  --surface-3: #F7F8F9;
+  --line:      #D4D6DB;
+  --line-soft: #E5E7EA;
 
-  --ink:   #1B2028;
-  --ink-2: #4A5260;
-  --ink-3: #79818F;
+  --ink:   #1A1C20;
+  --ink-2: #4C525B;
+  --ink-3: #7B818A;
 
-  --brand:      #1A4E8A;
-  --brand-deep: #123A68;
-  --brand-soft: #E2EAF5;
+  /* dourado da marca (#C8A060) escurecido para ficar legivel no claro */
+  --brand:      #8C6A1E;
+  --brand-deep: #6E5214;
+  --brand-soft: #F6EEDC;
 
-  --gold: #A07C16;  --gold-bg: #F8EED4;
+  --gold: #8C6A1E;  --gold-bg: #F6EEDC;
   --ok:   #2F6F4F;  --ok-bg:   #E0EFE6;
   --no:   #A93B31;  --no-bg:   #F8E3E0;
-  --idle: #79818F;  --idle-bg: #EAECF0;
+  --idle: #7B818A;  --idle-bg: #EAEBEE;
 
-  --shadow: 0 1px 2px rgba(23, 28, 36, .07), 0 8px 24px rgba(23, 28, 36, .08);
-  --shadow-lg: 0 24px 64px rgba(23, 28, 36, .24);
-  --focus: #1A4E8A;
+  --shadow: 0 1px 2px rgba(18, 19, 22, .07), 0 8px 24px rgba(18, 19, 22, .08);
+  --shadow-lg: 0 24px 64px rgba(18, 19, 22, .24);
+  --focus: #8C6A1E;
 
   --radius: 8px;
   --sans: "IBM Plex Sans", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
-  --display: "Archivo", var(--sans);
+  --display: "Montserrat", var(--sans);
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg:        #14171C;
-    --surface:   #1C212A;
-    --surface-2: #242A34;
-    --surface-3: #1F242D;
-    --line:      #333A46;
-    --line-soft: #2A303A;
+    --bg:        #121316;
+    --surface:   #1A1C20;
+    --surface-2: #23262B;
+    --surface-3: #1E2125;
+    --line:      #33373E;
+    --line-soft: #292D33;
 
-    --ink:   #E6E9EE;
-    --ink-2: #A8B0BC;
-    --ink-3: #78818E;
+    --ink:   #ECEDEF;
+    --ink-2: #A9AEB6;
+    --ink-3: #7A8089;
 
-    --brand:      #6BA5DC;
-    --brand-deep: #9AC6EC;
-    --brand-soft: #1B2C41;
+    /* o dourado da marca, exatamente como ele vive sobre o preto */
+    --brand:      #C8A060;
+    --brand-deep: #DCBE86;
+    --brand-soft: #2A2418;
 
-    --gold: #D8B45C;  --gold-bg: #382D11;
-    --ok:   #5FB584;  --ok-bg:   #17301F;
-    --no:   #E0837A;  --no-bg:   #3A1D1A;
-    --idle: #78818E;  --idle-bg: #232935;
+    --gold: #C8A060;  --gold-bg: #2A2418;
+    --ok:   #6FBF8F;  --ok-bg:   #17301F;
+    --no:   #E08A80;  --no-bg:   #3A1E1B;
+    --idle: #7A8089;  --idle-bg: #24272C;
 
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .34);
     --shadow-lg: 0 24px 64px rgba(0, 0, 0, .6);
-    --focus: #6BA5DC;
+    --focus: #C8A060;
   }
 }
 
@@ -71,29 +73,30 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg:        #14171C;
-  --surface:   #1C212A;
-  --surface-2: #242A34;
-  --surface-3: #1F242D;
-  --line:      #333A46;
-  --line-soft: #2A303A;
+  --bg:        #121316;
+  --surface:   #1A1C20;
+  --surface-2: #23262B;
+  --surface-3: #1E2125;
+  --line:      #33373E;
+  --line-soft: #292D33;
 
-  --ink:   #E6E9EE;
-  --ink-2: #A8B0BC;
-  --ink-3: #78818E;
+  --ink:   #ECEDEF;
+  --ink-2: #A9AEB6;
+  --ink-3: #7A8089;
 
-  --brand:      #6BA5DC;
-  --brand-deep: #9AC6EC;
-  --brand-soft: #1B2C41;
+  /* o dourado da marca, exatamente como ele vive sobre o preto */
+  --brand:      #C8A060;
+  --brand-deep: #DCBE86;
+  --brand-soft: #2A2418;
 
-  --gold: #D8B45C;  --gold-bg: #382D11;
-  --ok:   #5FB584;  --ok-bg:   #17301F;
-  --no:   #E0837A;  --no-bg:   #3A1D1A;
-  --idle: #78818E;  --idle-bg: #232935;
+  --gold: #C8A060;  --gold-bg: #2A2418;
+  --ok:   #6FBF8F;  --ok-bg:   #17301F;
+  --no:   #E08A80;  --no-bg:   #3A1E1B;
+  --idle: #7A8089;  --idle-bg: #24272C;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .34);
   --shadow-lg: 0 24px 64px rgba(0, 0, 0, .6);
-  --focus: #6BA5DC;
+  --focus: #C8A060;
 }
 
 * { box-sizing: border-box; }
@@ -155,41 +158,47 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-bottom: 2px solid var(--brand);
 }
 
-.eyebrow {
-  margin: 0 0 2px;
+/* assinatura da marca: simbolo + wordmark, como no logotipo */
+.marca { display: flex; align-items: center; gap: 14px; }
+
+.marca-simbolo {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  /* os recortes do circuito sao transparentes: a marca se adapta ao fundo */
+}
+
+.marca-nome {
+  margin: 0;
   font-family: var(--display);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .14em;
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: .30em;
+  text-indent: .30em;          /* compensa o espaco extra no fim */
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--ink-2);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--brand);
+  margin-bottom: 5px;
 }
 
 .masthead h1 {
   margin: 0;
   font-family: var(--display);
-  font-size: clamp(22px, 3vw, 30px);
-  font-weight: 700;
-  letter-spacing: -.02em;
+  font-size: clamp(20px, 2.6vw, 27px);
+  font-weight: 600;
+  letter-spacing: -.01em;
   line-height: 1.05;
 }
 
 .mast-right { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
 
-.whoami { display: flex; flex-direction: column; gap: 3px; }
-.whoami label, .field label {
+.field label {
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: .07em;
   text-transform: uppercase;
   color: var(--ink-3);
-}
-.whoami input {
-  width: 150px;
-  padding: 7px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
 }
 
 .kpis { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -274,9 +283,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .btn:hover { background: var(--brand-soft); border-color: var(--brand); }
 .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
-:root[data-theme="dark"] .btn.primary { color: #101720; }
+:root[data-theme="dark"] .btn.primary { color: #141519; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .btn.primary { color: #101720; }
+  :root:not([data-theme="light"]) .btn.primary { color: #141519; }
 }
 .btn.primary:hover { background: var(--brand-deep); border-color: var(--brand-deep); }
 .btn.ghost { background: transparent; }

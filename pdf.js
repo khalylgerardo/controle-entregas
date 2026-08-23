@@ -195,15 +195,15 @@
 
   /* ---------- relatorio ---------- */
   var C = {
-    ink:   [0.106, 0.125, 0.157],   /* grafite */
-    muted: [0.420, 0.460, 0.525],
-    brand: [0.102, 0.306, 0.541],   /* azul */
-    line:  [0.820, 0.835, 0.871],
-    head:  [0.906, 0.914, 0.933],
-    zebra: [0.969, 0.973, 0.980],
+    ink:   [0.102, 0.110, 0.125],   /* grafite */
+    muted: [0.420, 0.450, 0.490],
+    brand: [0.549, 0.416, 0.118],   /* dourado GrupoPro, escurecido p/ papel */
+    line:  [0.831, 0.839, 0.859],
+    head:  [0.910, 0.914, 0.925],
+    zebra: [0.969, 0.973, 0.976],
     ok:    [0.184, 0.435, 0.310],
     no:    [0.663, 0.231, 0.192],
-    warn:  [0.627, 0.486, 0.086]    /* dourado */
+    warn:  [0.690, 0.545, 0.235]
   };
 
   var M = 28, BOTTOM = 26;
@@ -226,7 +226,10 @@
     this.y = M;
     if (comTitulo) {
       this.page.rect(M, this.y, this.w - M * 2, 3, C.brand);
-      this.y += 20;
+      this.y += 14;
+      /* wordmark: Helvetica nao tem tracking, entao espacamos na mao */
+      this.page.text(M, this.y, 'G R U P O P R O', 8, true, C.brand);
+      this.y += 16;
       wrap(this.opts.title, this.w - M * 2, 15, true, 2).forEach(function (l) {
         this.page.text(M, this.y, l, 15, true, C.ink);
         this.y += 17;
@@ -313,7 +316,7 @@
     var self = this;
     itens.forEach(function (o) {
       self.espaco(26, false);
-      self.page.text(M + 4, self.y + 7, o.autor + ' — ' + o.data, 6.8, true, C.muted);
+        self.page.text(M + 4, self.y + 7, o.data, 6.8, true, C.muted);
       self.y += 10;
       wrap(o.texto, self.w - M * 2 - 12, 7.4, false, 0).forEach(function (l) {
         self.espaco(12, false);
@@ -365,7 +368,7 @@
       { key: 'item', label: 'Item', w: 150, align: 'l', wrap: 2, bold: true },
       { key: 'valor', label: 'Situacao', w: 52, align: 'c', flag: true },
       { key: 'observacao', label: 'Observacao', w: 245, align: 'l', wrap: 6 },
-      { key: 'quem', label: 'Atualizado por', w: 92, align: 'l', wrap: 2 }
+      { key: 'quando', label: 'Atualizado em', w: 92, align: 'l', wrap: 2 }
     ], A4_RETRATO[0] - M * 2);
 
     ctx.nova(true);
@@ -375,7 +378,7 @@
       ctx.linha({
         item: it.item, valor: it.valor,
         observacao: it.observacao || '—',
-        quem: it.quem ? it.quem + (it.quando ? ' · ' + it.quando : '') : '—'
+        quando: it.quando || '—'
       }, i, corValor(it.valor));
     });
 

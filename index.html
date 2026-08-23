@@ -7,11 +7,11 @@
 <!-- link aberto por decisao do time: ao menos mantemos fora dos buscadores -->
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<link rel="icon" type="image/png" href="favicon.png?v=20260823d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20260823c">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css?v=20260823d">
 </head>
 <body>
 
@@ -20,16 +20,15 @@
   <div class="banner" id="banner"><strong>Atenção</strong><span id="banner-txt"></span></div>
 
   <header class="masthead">
-    <div>
-      <p class="eyebrow">GrupoPro · Contábil</p>
-      <h1>Controle de Entregas</h1>
+    <div class="marca">
+      <img class="marca-simbolo" src="marca-grupopro.png" alt=""
+           width="292" height="292" decoding="async">
+      <div>
+        <p class="marca-nome">GrupoPro</p>
+        <h1>Controle de Entregas</h1>
+      </div>
     </div>
     <div class="mast-right">
-      <div class="whoami">
-        <label for="eu">Seu nome</label>
-        <input id="eu" type="text" maxlength="40" placeholder="Ex.: Khalyl"
-               autocomplete="off" spellcheck="false">
-      </div>
       <div class="kpis">
         <div class="kpi" data-tone="ok"><span class="kpi-n" id="kpi-ok">—</span><span class="kpi-l">Conferidos</span></div>
         <div class="kpi" data-tone="pendente"><span class="kpi-n" id="kpi-nao">—</span><span class="kpi-l">Pendências</span></div>
@@ -89,7 +88,7 @@
       <div class="obs-list" id="obs-lista"></div>
       <div class="composer">
         <textarea id="obs-texto" aria-label="Nova observação geral"
-          placeholder="Observação que vale para a empresa toda. Quem for complementar depois entra com um novo registro — cada um fica assinado e datado."></textarea>
+          placeholder="Observação que vale para a empresa toda. Quem for complementar depois entra com um novo registro, com a data."></textarea>
         <div class="composer-actions">
           <span class="composer-note" id="obs-aviso"></span>
           <span class="spacer"></span>
@@ -102,7 +101,7 @@
 
 </div>
 
-<script src="pdf.js?v=20260823c"></script>
-<script type="module" src="app.js?v=20260823c"></script>
+<script src="pdf.js?v=20260823d"></script>
+<script type="module" src="app.js?v=20260823d"></script>
 </body>
 </html>
