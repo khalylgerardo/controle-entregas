@@ -7,15 +7,61 @@
 <!-- link aberto por decisao do time: ao menos mantemos fora dos buscadores -->
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
-<link rel="icon" type="image/png" href="favicon.png?v=20260823d">
+<link rel="icon" type="image/png" href="favicon.png?v=20260823e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20260823d">
+<link rel="stylesheet" href="styles.css?v=20260823e">
 </head>
 <body>
 
-<div class="app">
+<!-- porta de entrada: o app so aparece com sessao valida -->
+<div class="portao" id="portao-login" hidden>
+  <form class="portao-caixa" id="form-login" autocomplete="on">
+    <img class="portao-marca" src="marca-grupopro.png" alt="" decoding="async">
+    <p class="marca-nome">GrupoPro</p>
+    <h1>Controle de Entregas</h1>
+    <div class="campo">
+      <label for="login-usuario">Usuário</label>
+      <input id="login-usuario" name="username" type="text" autocomplete="username"
+             autocapitalize="none" spellcheck="false" required placeholder="nome.sobrenome">
+    </div>
+    <div class="campo">
+      <label for="login-senha">Senha</label>
+      <input id="login-senha" name="password" type="password"
+             autocomplete="current-password" required>
+    </div>
+    <p class="portao-erro" id="login-erro"></p>
+    <button type="submit" class="btn primary" id="login-entrar">Entrar</button>
+  </form>
+</div>
+
+<!-- troca obrigatoria no primeiro acesso e apos reset -->
+<div class="portao" id="portao-senha" hidden>
+  <form class="portao-caixa" id="form-senha">
+    <img class="portao-marca" src="marca-grupopro.png" alt="" decoding="async">
+    <h1>Defina sua senha</h1>
+    <p class="explica" id="senha-explica">
+      Você está com a senha inicial. Escolha uma nova para continuar.
+    </p>
+    <div class="campo">
+      <label for="senha-nova">Nova senha</label>
+      <input id="senha-nova" type="password" autocomplete="new-password"
+             minlength="6" required>
+      <span class="dica">Mínimo de 6 caracteres.</span>
+    </div>
+    <div class="campo">
+      <label for="senha-repete">Repita a senha</label>
+      <input id="senha-repete" type="password" autocomplete="new-password"
+             minlength="6" required>
+    </div>
+    <p class="portao-erro" id="senha-erro"></p>
+    <button type="submit" class="btn primary" id="senha-salvar">Salvar e entrar</button>
+    <button type="button" class="btn ghost" id="senha-sair">Sair</button>
+  </form>
+</div>
+
+<div class="app" id="app" hidden>
 
   <div class="banner" id="banner"><strong>Atenção</strong><span id="banner-txt"></span></div>
 
@@ -53,6 +99,12 @@
     <div class="toolbar-actions">
       <span class="sync" id="sync" data-estado="carregando">Carregando…</span>
       <span class="count-hint" id="contagem"></span>
+      <span class="sessao">
+        <span class="sessao-nome" id="sessao-nome"></span>
+        <button type="button" class="btn small ghost" id="btn-usuarios" hidden>Usuários</button>
+        <button type="button" class="btn small ghost" id="btn-trocar-senha">Trocar senha</button>
+        <button type="button" class="btn small ghost" id="btn-sair">Sair</button>
+      </span>
       <button type="button" class="btn ghost" id="btn-pdf-geral">PDF geral</button>
       <button type="button" class="btn primary" id="btn-pdf">PDF da empresa</button>
     </div>
@@ -101,7 +153,34 @@
 
 </div>
 
-<script src="pdf.js?v=20260823d"></script>
-<script type="module" src="app.js?v=20260823d"></script>
+<dialog id="dlg-usuarios">
+  <div class="usuarios-corpo">
+    <header class="dlg-head">
+      <div>
+        <p class="dlg-cod">Administração</p>
+        <h2>Acessos</h2>
+      </div>
+      <button type="button" class="btn ghost" id="usuarios-fechar">Fechar</button>
+    </header>
+    <div class="usuarios-lista" id="usuarios-lista"></div>
+    <form class="novo-usuario" id="form-novo-usuario">
+      <div class="campo">
+        <label for="novo-usuario">Novo usuário</label>
+        <input id="novo-usuario" type="text" autocapitalize="none" spellcheck="false"
+               placeholder="nome.sobrenome" required>
+      </div>
+      <div class="campo">
+        <label for="novo-nome-pessoa">Nome</label>
+        <input id="novo-nome-pessoa" type="text" placeholder="Nome da pessoa">
+      </div>
+      <label class="marcar"><input type="checkbox" id="novo-admin"> administrador</label>
+      <button type="submit" class="btn primary" id="novo-criar">Criar acesso</button>
+      <p class="portao-erro" id="usuarios-erro" style="flex:1 0 100%"></p>
+    </form>
+  </div>
+</dialog>
+
+<script src="pdf.js?v=20260823e"></script>
+<script type="module" src="app.js?v=20260823e"></script>
 </body>
 </html>

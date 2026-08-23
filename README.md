@@ -15,8 +15,27 @@ pede confirmação em dois cliques e vale só para aquela empresa.
 Abaixo dos cards fica a thread de **observações gerais** da empresa: cada
 registro fica datado e pode ser editado ou excluído.
 
-Não há login nem identificação: qualquer pessoa com o link edita e emite
-relatório. Os registros guardam a data, não o autor.
+## Acesso
+
+Entrada por usuário e senha. O usuário é `nome.sobrenome`; por baixo o Supabase
+Auth trabalha com `usuario@controle.proativaaccounting.com.br`, mas isso não
+aparece para quem usa. Nenhum e-mail é enviado — as contas nascem confirmadas.
+
+Todo acesso novo começa com a senha `123456` e é **obrigado a trocar** no
+primeiro login. Um admin pode redefinir a senha de alguém de volta para `123456`,
+e a exigência de troca volta junto.
+
+Só administradores criam, removem, promovem ou redefinem acessos. Dentro do app
+não há distinção: qualquer pessoa autenticada edita tudo.
+
+Regra de senha: mínimo 6 caracteres, e não pode ser igual à inicial. Mais nada —
+foi decisão do time, e por isso a checagem de senhas vazadas do Supabase fica
+desligada (ela rejeitaria `123456` e inviabilizaria o fluxo).
+
+As operações que exigem a chave de serviço (criar, remover, redefinir) vivem na
+Edge Function `admin-usuarios`, que confere no servidor se quem chamou é admin.
+A chave de serviço nunca chega ao navegador. Os registros guardam a data, não o
+autor.
 
 Duas saídas em PDF:
 

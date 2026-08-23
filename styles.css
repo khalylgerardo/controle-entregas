@@ -696,3 +696,180 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* ===== acesso ============================================================= */
+
+/* o app so aparece depois da sessao resolvida */
+.app[hidden], .portao[hidden] { display: none !important; }
+
+.portao {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+  overflow-y: auto;
+}
+
+.portao-caixa {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 30px 30px 28px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--brand);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.portao-marca { width: 66px; height: 66px; align-self: center; }
+
+.portao-caixa .marca-nome { align-self: center; margin: 6px 0 0; }
+
+.portao-caixa h1 {
+  margin: 0 0 6px;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.portao-caixa p.explica {
+  margin: -4px 0 4px;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.campo { display: flex; flex-direction: column; gap: 4px; }
+.campo label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.campo input {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-3);
+  font-size: 15px;
+}
+.campo input:focus { background: var(--surface); border-color: var(--brand); }
+.campo .dica { font-size: 11.5px; color: var(--ink-3); }
+
+.portao-erro {
+  margin: 0;
+  min-height: 16px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--no);
+}
+.portao-erro:empty { min-height: 0; }
+
+.portao-caixa .btn { justify-content: center; text-align: center; }
+
+/* ---------- chip de sessao na barra ---------- */
+.sessao { display: flex; align-items: center; gap: 6px; }
+.sessao-nome {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sessao-nome b {
+  font-weight: 600;
+  color: var(--brand);
+  margin-left: 5px;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* ---------- painel de usuarios ---------- */
+dialog#dlg-usuarios {
+  width: min(620px, 94vw);
+  max-height: 88vh;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+}
+dialog#dlg-usuarios::backdrop { background: rgba(6, 7, 9, .6); }
+
+.usuarios-corpo { display: flex; flex-direction: column; max-height: 88vh; }
+.usuarios-lista { overflow-y: auto; padding: 12px 18px; display: flex; flex-direction: column; gap: 8px; }
+
+.usuario-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-3);
+}
+.usuario-id { flex: 1; min-width: 0; }
+.usuario-login {
+  display: block;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.usuario-nome { display: block; font-size: 11.5px; color: var(--ink-3); }
+.marca-admin {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  border: 1px solid var(--brand);
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.marca-pendente {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--gold-bg);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.usuario-acoes { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.novo-usuario {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.novo-usuario .campo { flex: 1 1 150px; }
+.novo-usuario .campo input { font-size: 13.5px; padding: 8px 10px; }
+.novo-usuario .marcar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  padding-bottom: 9px;
+  white-space: nowrap;
+}

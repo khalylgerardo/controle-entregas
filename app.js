@@ -1,16 +1,17 @@
 /* Controle de Entregas — GrupoPro
    Uma empresa por vez: seletor no topo, itens de conferencia em cards.
    Front-end estatico (GitHub Pages) sobre Postgres (Supabase).
-   Sem login por decisao do time: a chave abaixo e publica de proposito e so
-   alcanca as tabelas ctrl_*, que tem politica liberada. As demais tabelas do
-   banco exigem usuario autenticado e permanecem inacessiveis por ela. */
+   Acesso por usuario e senha (Supabase Auth). A chave abaixo e publicavel de
+   proposito: sozinha ela nao abre nada, porque as politicas das tabelas ctrl_*
+   exigem sessao autenticada. Criar acesso e resetar senha exigem a chave de
+   servico e por isso vivem na Edge Function admin-usuarios, nunca aqui. */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const SUPABASE_URL = 'https://czbumtufqxbbvfbmjzdt.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wRmo_lZyNkQx0OuD1OOeXg_75Aj13pT';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: false },
+  auth: { persistSession: true, autoRefreshToken: true },
   realtime: { params: { eventsPerSecond: 5 } }
 });
 
@@ -788,8 +789,7 @@ function ouvirTempoReal() {
     .subscribe();
 }
 
-async function iniciar() {
-  ligarEventos();
+async function carregarDados() {
   const [emp, itens, obs] = await Promise.all([
     sb.from('ctrl_empresas').select('*').order('ordem'),
     sb.from('ctrl_itens').select('*'),
@@ -828,4 +828,293 @@ async function iniciar() {
   sync('ok');
 }
 
-iniciar();
+
+/* ===== acesso ============================================================= */
+/* O usuario digita "nome.sobrenome"; o Auth trabalha com e-mail, entao o
+   dominio interno e colado por baixo. Nenhum e-mail e enviado: as contas ja
+   nascem confirmadas pela Edge Function. */
+const DOMINIO = '@controle.proativaaccounting.com.br';
+const SENHA_PADRAO = '123456';
+let EU = null;
+
+function mostrar(tela) {
+  qs('#portao-login').hidden = tela !== 'login';
+  qs('#portao-senha').hidden = tela !== 'senha';
+  qs('#app').hidden = tela !== 'app';
+}
+
+async function perfilDe(uid) {
+  const { data } = await sb.from('ctrl_usuarios').select('*').eq('id', uid).single();
+  return data || null;
+}
+
+async function entrar(ev) {
+  ev.preventDefault();
+  const erro = qs('#login-erro');
+  erro.textContent = '';
+  const usuario = qs('#login-usuario').value.trim().toLowerCase();
+  const senha = qs('#login-senha').value;
+  if (!usuario || !senha) { erro.textContent = 'Preencha usuário e senha.'; return; }
+
+  const btn = qs('#login-entrar');
+  btn.disabled = true;
+  btn.textContent = 'Entrando…';
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: usuario.includes('@') ? usuario : usuario + DOMINIO,
+    password: senha
+  });
+  btn.disabled = false;
+  btn.textContent = 'Entrar';
+
+  if (error) {
+    erro.textContent = 'Usuário ou senha incorretos.';
+    qs('#login-senha').value = '';
+    qs('#login-senha').focus();
+    return;
+  }
+  await depoisDoLogin(data.user);
+}
+
+async function depoisDoLogin(user) {
+  EU = await perfilDe(user.id);
+  if (!EU) {
+    await sb.auth.signOut();
+    mostrar('login');
+    qs('#login-erro').textContent =
+      'Este acesso existe, mas está sem perfil. Peça a um administrador para recriá-lo.';
+    return;
+  }
+
+  if (EU.trocar_senha) {
+    mostrar('senha');
+    qs('#senha-nova').focus();
+    return;
+  }
+
+  const chip = qs('#sessao-nome');
+  chip.textContent = EU.usuario;
+  if (EU.admin) chip.append(Object.assign(document.createElement('b'), { textContent: 'admin' }));
+  qs('#btn-usuarios').hidden = !EU.admin;
+
+  mostrar('app');
+  await carregarDados();
+}
+
+async function salvarNovaSenha(ev) {
+  ev.preventDefault();
+  const erro = qs('#senha-erro');
+  erro.textContent = '';
+  const nova = qs('#senha-nova').value;
+  const repete = qs('#senha-repete').value;
+
+  if (nova.length < 6) { erro.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+  if (nova !== repete) { erro.textContent = 'As duas senhas não estão iguais.'; return; }
+  /* unica regra alem do tamanho: repetir a inicial anularia a troca obrigatoria */
+  if (nova === SENHA_PADRAO) { erro.textContent = 'Escolha uma senha diferente da inicial.'; return; }
+
+  const btn = qs('#senha-salvar');
+  btn.disabled = true;
+  const { error } = await sb.auth.updateUser({ password: nova });
+  if (error) {
+    btn.disabled = false;
+    erro.textContent = 'Não consegui salvar a senha. Tente de novo.';
+    return;
+  }
+  await sb.from('ctrl_usuarios').update({ trocar_senha: false }).eq('id', EU.id);
+  btn.disabled = false;
+  qs('#senha-nova').value = '';
+  qs('#senha-repete').value = '';
+  EU.trocar_senha = false;
+  await depoisDoLogin({ id: EU.id });
+}
+
+async function sair() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+/* ---------- administracao de acessos ---------- */
+/* fetch explicito em vez de sb.functions.invoke: o invoke nao estava
+   mandando o token da sessao, e sem ele a funcao (com razao) recusa. */
+async function chamarAdmin(corpo) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw new Error('Sessão expirada. Entre novamente.');
+
+  const resp = await fetch(SUPABASE_URL + '/functions/v1/admin-usuarios', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + session.access_token,
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY
+    },
+    body: JSON.stringify(corpo)
+  });
+
+  let json = null;
+  try { json = await resp.json(); } catch { /* resposta sem corpo */ }
+  if (!resp.ok || (json && json.erro)) {
+    throw new Error((json && json.erro) || 'Não consegui completar a operação.');
+  }
+  return json;
+}
+
+function botaoAcao(acao, rotulo) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'btn small';
+  b.dataset.acao = acao;
+  b.textContent = rotulo;
+  return b;
+}
+
+function linhaUsuario(u) {
+  const el = document.createElement('div');
+  el.className = 'usuario-linha';
+  el.dataset.id = u.id;
+
+  const ident = document.createElement('div');
+  ident.className = 'usuario-id';
+  ident.append(
+    Object.assign(document.createElement('span'), { className: 'usuario-login', textContent: u.usuario }),
+    Object.assign(document.createElement('span'), { className: 'usuario-nome', textContent: u.nome || '—' })
+  );
+  el.append(ident);
+
+  if (u.admin) {
+    el.append(Object.assign(document.createElement('span'),
+      { className: 'marca-admin', textContent: 'admin' }));
+  }
+  if (u.trocar_senha) {
+    el.append(Object.assign(document.createElement('span'),
+      { className: 'marca-pendente', textContent: 'senha inicial' }));
+  }
+
+  const acoes = document.createElement('div');
+  acoes.className = 'usuario-acoes';
+  acoes.append(botaoAcao('resetar', 'Resetar senha'));
+  if (u.id !== EU.id) {
+    acoes.append(botaoAcao('promover', u.admin ? 'Tirar admin' : 'Tornar admin'));
+    acoes.append(botaoAcao('excluir', 'Excluir'));
+  }
+  el.append(acoes);
+  return el;
+}
+
+async function renderUsuarios() {
+  const lista = qs('#usuarios-lista');
+  lista.textContent = 'Carregando…';
+  const { data, error } = await sb.from('ctrl_usuarios').select('*').order('usuario');
+  lista.textContent = '';
+  if (error) { lista.textContent = 'Não consegui carregar os acessos.'; return; }
+  data.forEach((u) => lista.append(linhaUsuario(u)));
+}
+
+async function acaoUsuario(botao) {
+  const id = botao.closest('.usuario-linha').dataset.id;
+  const acao = botao.dataset.acao;
+  const erro = qs('#usuarios-erro');
+  erro.textContent = '';
+
+  /* excluir e resetar confirmam em dois cliques, como no resto do app */
+  if ((acao === 'excluir' || acao === 'resetar') && !botao.hasAttribute('data-confirm')) {
+    qsa('.usuario-acoes [data-confirm]').forEach((b) => {
+      b.removeAttribute('data-confirm');
+      if (b.dataset.rotulo) b.textContent = b.dataset.rotulo;
+    });
+    botao.dataset.rotulo = botao.textContent;
+    botao.setAttribute('data-confirm', '');
+    botao.textContent = acao === 'excluir' ? 'Confirmar exclusão' : 'Confirmar reset';
+    setTimeout(() => {
+      if (botao.isConnected && botao.hasAttribute('data-confirm')) {
+        botao.removeAttribute('data-confirm');
+        botao.textContent = botao.dataset.rotulo;
+      }
+    }, 4000);
+    return;
+  }
+
+  botao.disabled = true;
+  try {
+    if (acao === 'resetar') {
+      await chamarAdmin({ acao: 'resetar', id });
+      toast('Senha redefinida para ' + SENHA_PADRAO + '. A pessoa troca no próximo acesso.', 'ok');
+    } else if (acao === 'excluir') {
+      await chamarAdmin({ acao: 'excluir', id });
+      toast('Acesso removido.', 'ok');
+    } else if (acao === 'promover') {
+      await chamarAdmin({ acao: 'promover', id, admin: botao.textContent.startsWith('Tornar') });
+    }
+    await renderUsuarios();
+  } catch (e) {
+    erro.textContent = e.message;
+    botao.disabled = false;
+  }
+}
+
+async function criarUsuario(ev) {
+  ev.preventDefault();
+  const erro = qs('#usuarios-erro');
+  erro.textContent = '';
+  const usuario = qs('#novo-usuario').value.trim().toLowerCase();
+  const nome = qs('#novo-nome-pessoa').value.trim();
+  const admin = qs('#novo-admin').checked;
+
+  const btn = qs('#novo-criar');
+  btn.disabled = true;
+  try {
+    await chamarAdmin({ acao: 'criar', usuario, nome, admin });
+    qs('#novo-usuario').value = '';
+    qs('#novo-nome-pessoa').value = '';
+    qs('#novo-admin').checked = false;
+    await renderUsuarios();
+    toast('Acesso "' + usuario + '" criado. Senha inicial ' + SENHA_PADRAO + '.', 'ok');
+  } catch (e) {
+    erro.textContent = e.message;
+  }
+  btn.disabled = false;
+}
+
+function ligarEventosAcesso() {
+  qs('#form-login').addEventListener('submit', entrar);
+  qs('#form-senha').addEventListener('submit', salvarNovaSenha);
+  qs('#senha-sair').addEventListener('click', sair);
+  qs('#btn-sair').addEventListener('click', sair);
+
+  qs('#btn-trocar-senha').addEventListener('click', () => {
+    qs('#senha-explica').textContent = 'Escolha a nova senha para o seu acesso.';
+    qs('#senha-erro').textContent = '';
+    mostrar('senha');
+    qs('#senha-nova').focus();
+  });
+
+  qs('#btn-usuarios').addEventListener('click', async () => {
+    qs('#usuarios-erro').textContent = '';
+    await renderUsuarios();
+    qs('#dlg-usuarios').showModal();
+  });
+  qs('#usuarios-fechar').addEventListener('click', () => qs('#dlg-usuarios').close());
+  qs('#form-novo-usuario').addEventListener('submit', criarUsuario);
+  qs('#usuarios-lista').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-acao]');
+    if (b) acaoUsuario(b);
+  });
+
+  /* sessao encerrada em outra aba ou expirada */
+  sb.auth.onAuthStateChange((evento) => {
+    if (evento === 'SIGNED_OUT') location.reload();
+  });
+}
+
+async function arrancar() {
+  ligarEventos();
+  ligarEventosAcesso();
+  const { data } = await sb.auth.getSession();
+  if (!data.session) {
+    mostrar('login');
+    qs('#login-usuario').focus();
+    return;
+  }
+  await depoisDoLogin(data.session.user);
+}
+
+arrancar();
