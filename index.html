@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Controle de Entregas · GrupoPro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- link aberto por decisao do time: ao menos mantemos fora dos buscadores -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app">
+
+  <div class="banner" id="banner"><strong>Atenção</strong><span id="banner-txt"></span></div>
+
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">GrupoPro · Contábil</p>
+      <h1>Controle de Entregas</h1>
+    </div>
+    <div class="mast-right">
+      <div class="whoami">
+        <label for="eu">Seu nome</label>
+        <input id="eu" type="text" maxlength="40" placeholder="Ex.: Khalyl"
+               autocomplete="off" spellcheck="false">
+      </div>
+      <div class="kpis">
+        <div class="kpi" data-tone="ok"><span class="kpi-n" id="kpi-ok">—</span><span class="kpi-l">Conferidos</span></div>
+        <div class="kpi" data-tone="pendente"><span class="kpi-n" id="kpi-nao">—</span><span class="kpi-l">Pendências</span></div>
+        <div class="kpi" data-tone="branco"><span class="kpi-n" id="kpi-branco">—</span><span class="kpi-l">Em branco</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="field empresa">
+      <label for="f-empresa">Empresa</label>
+      <select id="f-empresa"><option value="">Carregando…</option></select>
+    </div>
+    <div class="field busca">
+      <label for="f-busca">Filtrar a lista</label>
+      <input id="f-busca" type="search" placeholder="Código, nome ou CNPJ"
+             autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field"><label for="f-grupo">Grupo</label><select id="f-grupo"></select></div>
+    <div class="field"><label for="f-regime">Regime</label><select id="f-regime"></select></div>
+    <div class="field"><label for="f-periodo">Periodicidade</label><select id="f-periodo"></select></div>
+    <div class="toolbar-actions">
+      <span class="sync" id="sync" data-estado="carregando">Carregando…</span>
+      <span class="count-hint" id="contagem"></span>
+      <button type="button" class="btn ghost" id="btn-pdf-geral">PDF geral</button>
+      <button type="button" class="btn primary" id="btn-pdf">PDF da empresa</button>
+    </div>
+  </div>
+
+  <div class="painel" id="painel">
+    <p class="vazio-selecao" id="vazio">
+      Escolha uma empresa no seletor acima para abrir a ficha de conferência.
+    </p>
+
+    <section id="conteudo" hidden>
+      <div class="ficha">
+        <div>
+          <span class="ficha-cod" id="ficha-cod"></span>
+          <h2 id="ficha-nome"></h2>
+        </div>
+        <dl>
+          <div class="par"><dt>CNPJ</dt><dd id="ficha-cnpj"></dd></div>
+          <div class="par"><dt>Grupo</dt><dd id="ficha-grupo"></dd></div>
+          <div class="par"><dt>Regime</dt><dd id="ficha-regime"></dd></div>
+          <div class="par"><dt>Entrega</dt><dd id="ficha-periodo"></dd></div>
+        </dl>
+        <div class="progresso">
+          <div class="barra"><i id="barra-i" style="width:0%"></i></div>
+          <span id="progresso-txt"></span>
+        </div>
+      </div>
+
+      <h3 class="secao-titulo" style="margin:6px 0 0">Itens de conferência</h3>
+      <div class="cards" id="cards"></div>
+
+      <h3 class="secao-titulo" style="margin:10px 0 0">Observações gerais da empresa</h3>
+      <div class="obs-list" id="obs-lista"></div>
+      <div class="composer">
+        <textarea id="obs-texto" aria-label="Nova observação geral"
+          placeholder="Observação que vale para a empresa toda. Quem for complementar depois entra com um novo registro — cada um fica assinado e datado."></textarea>
+        <div class="composer-actions">
+          <span class="composer-note" id="obs-aviso"></span>
+          <span class="spacer"></span>
+          <button type="button" class="btn" id="obs-cancelar" hidden>Cancelar</button>
+          <button type="button" class="btn primary" id="obs-salvar">Adicionar observação</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+</div>
+
+<script src="pdf.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
