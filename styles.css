@@ -918,3 +918,33 @@ dialog#dlg-usuarios::backdrop { background: rgba(6, 7, 9, .6); }
 }
 .dlg-x::after { content: "\00d7"; }
 .dlg-x:hover { background: var(--no-bg); border-color: var(--no); color: var(--no); }
+
+/* ---------- chave de tema ---------- */
+.tema {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.tema button {
+  padding: 4px 11px 5px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-3);
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background .12s ease, color .12s ease;
+}
+.tema button:hover { color: var(--ink); }
+.tema button[data-ativo] { background: var(--brand); color: #fff; }
+:root[data-theme="dark"] .tema button[data-ativo] { color: #141519; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tema button[data-ativo] { color: #141519; }
+}

@@ -7,11 +7,19 @@
 <!-- link aberto por decisao do time: ao menos mantemos fora dos buscadores -->
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
-<link rel="icon" type="image/png" href="favicon.png?v=20260823f">
+<link rel="icon" type="image/png" href="favicon.png?v=20260823g">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20260823f">
+<link rel="stylesheet" href="styles.css?v=20260823g">
+<script>
+  /* roda antes do body existir: sem isto a pagina pinta no tema do sistema e
+     so depois corrige para a escolha salva, causando um flash. */
+  try {
+    var t = localStorage.getItem('gp.controle.tema');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* navegador em modo privado */ }
+</script>
 </head>
 <body>
 
@@ -75,6 +83,11 @@
       </div>
     </div>
     <div class="mast-right">
+      <div class="tema" id="tema" role="group" aria-label="Tema da tela">
+        <button type="button" data-tema="sistema" title="Seguir o tema do sistema">Sistema</button>
+        <button type="button" data-tema="light" title="Sempre claro">Claro</button>
+        <button type="button" data-tema="dark" title="Sempre escuro">Escuro</button>
+      </div>
       <div class="kpis">
         <div class="kpi" data-tone="ok"><span class="kpi-n" id="kpi-ok">—</span><span class="kpi-l">Conferidos</span></div>
         <div class="kpi" data-tone="pendente"><span class="kpi-n" id="kpi-nao">—</span><span class="kpi-l">Pendências</span></div>
@@ -181,7 +194,7 @@
   </div>
 </dialog>
 
-<script src="pdf.js?v=20260823f"></script>
-<script type="module" src="app.js?v=20260823f"></script>
+<script src="pdf.js?v=20260823g"></script>
+<script type="module" src="app.js?v=20260823g"></script>
 </body>
 </html>

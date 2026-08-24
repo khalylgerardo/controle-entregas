@@ -1105,7 +1105,40 @@ function ligarEventosAcesso() {
   });
 }
 
+/* ---------- tema ---------- */
+/* Tres posicoes, e o padrao e seguir o sistema. Sem a opcao "Sistema" a
+   pessoa que escolhesse uma vez ficaria presa nela para sempre.
+   Sem atributo no <html>, o CSS cai na media query e acompanha o SO ao vivo. */
+const K_TEMA = 'gp.controle.tema';
+
+function aplicarTema(escolha) {
+  const raiz = document.documentElement;
+  if (escolha === 'light' || escolha === 'dark') raiz.setAttribute('data-theme', escolha);
+  else { raiz.removeAttribute('data-theme'); escolha = 'sistema'; }
+
+  try {
+    if (escolha === 'sistema') localStorage.removeItem(K_TEMA);
+    else localStorage.setItem(K_TEMA, escolha);
+  } catch { /* navegador em modo privado */ }
+
+  qsa('#tema button').forEach((b) => {
+    if (b.dataset.tema === escolha) b.setAttribute('data-ativo', '');
+    else b.removeAttribute('data-ativo');
+  });
+}
+
+function ligarTema() {
+  let salvo = null;
+  try { salvo = localStorage.getItem(K_TEMA); } catch { /* modo privado */ }
+  aplicarTema(salvo || 'sistema');
+  qs('#tema').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-tema]');
+    if (b) aplicarTema(b.dataset.tema);
+  });
+}
+
 async function arrancar() {
+  ligarTema();
   ligarEventos();
   ligarEventosAcesso();
   const { data } = await sb.auth.getSession();
