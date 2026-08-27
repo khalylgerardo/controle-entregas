@@ -7,11 +7,11 @@
 <!-- link aberto por decisao do time: ao menos mantemos fora dos buscadores -->
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
-<link rel="icon" type="image/png" href="favicon.png?v=20260823h">
+<link rel="icon" type="image/png" href="favicon.png?v=20260824a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20260823h">
+<link rel="stylesheet" href="styles.css?v=20260824a">
 <script>
   /* roda antes do body existir: sem isto a pagina pinta no tema do sistema e
      so depois corrige para a escolha salva, causando um flash. */
@@ -101,6 +101,10 @@
       <label for="f-empresa">Empresa</label>
       <select id="f-empresa"><option value="">Carregando…</option></select>
     </div>
+    <div class="field item">
+      <label for="f-item">Ou por item</label>
+      <select id="f-item"></select>
+    </div>
     <div class="field busca">
       <label for="f-busca">Filtrar a lista</label>
       <input id="f-busca" type="search" placeholder="Código, nome ou CNPJ"
@@ -129,7 +133,7 @@
     </p>
 
     <section id="conteudo" hidden>
-      <div class="ficha">
+      <div class="ficha" id="ficha-empresa">
         <div>
           <span class="ficha-cod" id="ficha-cod"></span>
           <h2 id="ficha-nome"></h2>
@@ -146,9 +150,24 @@
         </div>
       </div>
 
-      <h3 class="secao-titulo" style="margin:6px 0 0">Itens de conferência</h3>
+      <div class="ficha ficha-item" id="ficha-item" hidden>
+        <div>
+          <span class="ficha-cod">Item</span>
+          <h2 id="item-nome"></h2>
+        </div>
+        <dl>
+          <div class="par"><dt>Empresas com este item</dt><dd id="item-quantas"></dd></div>
+        </dl>
+        <div class="progresso">
+          <div class="barra"><i id="item-barra" style="width:0%"></i></div>
+          <span id="item-progresso"></span>
+        </div>
+      </div>
+
+      <h3 class="secao-titulo" id="titulo-cards" style="margin:6px 0 0">Itens de conferência</h3>
       <div class="cards" id="cards"></div>
 
+      <div id="bloco-obs">
       <h3 class="secao-titulo" style="margin:10px 0 0">Observações gerais da empresa</h3>
       <div class="obs-list" id="obs-lista"></div>
       <div class="composer">
@@ -160,6 +179,7 @@
           <button type="button" class="btn" id="obs-cancelar" hidden>Cancelar</button>
           <button type="button" class="btn primary" id="obs-salvar">Adicionar observação</button>
         </div>
+      </div>
       </div>
     </section>
   </div>
@@ -194,7 +214,7 @@
   </div>
 </dialog>
 
-<script src="pdf.js?v=20260823h"></script>
-<script type="module" src="app.js?v=20260823h"></script>
+<script src="pdf.js?v=20260824a"></script>
+<script type="module" src="app.js?v=20260824a"></script>
 </body>
 </html>

@@ -956,3 +956,29 @@ dialog#dlg-usuarios::backdrop { background: rgba(6, 7, 9, .6); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .tema button[data-ativo] { color: #141519; }
 }
+
+/* dois eixos de entrada: empresa ou item. O de item e menor porque a lista
+   e curta e o comando principal continua sendo a empresa. */
+.field.item { flex: 0 1 250px; min-width: 190px; }
+.field.item select {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--surface);
+  border-color: var(--line);
+}
+.field.item select:focus { border-color: var(--brand); }
+
+.ficha-item { border-left-color: var(--gold); }
+
+/* na vista por item o titulo do card e a empresa: nao e editavel */
+.card-t-fixo {
+  cursor: default;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.card-t-fixo:hover { background: transparent; box-shadow: none; }

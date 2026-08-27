@@ -394,6 +394,39 @@
     return ctx.fechar();
   }
 
+  /* ---------- um item em todas as empresas (A4 retrato) ---------- */
+  function buildItem(o) {
+    var ctx = new Ctx(A4_RETRATO[0], A4_RETRATO[1], {
+      title: o.item || 'Item',
+      subtitle: 'Situacao deste item em cada empresa',
+      emitido: o.emitido,
+      filtros: o.filtros,
+      resumo: o.resumo,
+      rodape: o.rodape
+    });
+
+    ctx.cols = escalar([
+      { key: 'codigo', label: 'Codigo', w: 44, align: 'l', bold: true },
+      { key: 'empresa', label: 'Empresa', w: 176, align: 'l', wrap: 3 },
+      { key: 'valor', label: 'Situacao', w: 52, align: 'c', flag: true },
+      { key: 'observacao', label: 'Observacao', w: 181, align: 'l', wrap: 6 },
+      { key: 'quando', label: 'Atualizado em', w: 86, align: 'l', wrap: 2 }
+    ], A4_RETRATO[0] - M * 2);
+
+    ctx.nova('title');
+    ctx.cabecalho();
+
+    (o.rows || []).forEach(function (r, i) {
+      ctx.linha(r, i, r._situacao === 'ok' ? C.ok
+        : r._situacao === 'pendente' ? C.no : C.line);
+    });
+
+    if (!(o.rows || []).length) {
+      ctx.page.text(M + 6, ctx.y + 16, 'Nenhuma empresa possui este item.', 9, false, C.muted);
+    }
+    return ctx.fechar();
+  }
+
   /* ---------- panorama de varias empresas (A4 paisagem) ---------- */
   function buildResumo(o) {
     var ctx = new Ctx(A4_PAISAGEM[0], A4_PAISAGEM[1], {
@@ -439,6 +472,7 @@
 
   var api = {
     buildEmpresa: buildEmpresa,
+    buildItem: buildItem,
     buildResumo: buildResumo,
     widthOf: widthOf, wrap: wrap, truncate: truncate
   };

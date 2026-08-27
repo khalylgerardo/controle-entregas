@@ -10,6 +10,17 @@ o endereço antigo `khalylgerardo.github.io/controle-entregas` redireciona para 
 
 ## Como funciona
 
+A tela tem **dois eixos de entrada**, e eles se excluem:
+
+- **Por empresa** — uma empresa, todos os seus itens.
+- **Por item** — um item, todas as empresas que o têm. É a vista para perguntar
+  "quem está pendente na Folha?" sem abrir ficha por ficha. Aqui o card mostra a
+  empresa; renomear e excluir não aparecem, porque seriam ações sobre o item e
+  ficariam ambíguas nesse contexto. As observações gerais também somem — elas são
+  da empresa, não do item.
+
+Os filtros de grupo, regime e periodicidade valem para as duas vistas.
+
 Escolha a empresa no seletor do topo. A ficha abre com um card por item de
 conferência — cada card tem **Sim / Não** e um campo de observação daquele item.
 O card `+` no fim da grade cria um item novo só para aquela empresa.
@@ -46,6 +57,8 @@ Duas saídas em PDF:
 
 - **PDF da empresa** — ficha completa: todos os itens, situação, observações de
   cada um e a thread geral.
+- **PDF do item** — na vista por item: cada empresa, a situação daquele item,
+  meses e observação.
 - **PDF geral** — panorama das empresas que estiverem no filtro, com o progresso
   de cada uma.
 
