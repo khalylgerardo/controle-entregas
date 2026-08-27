@@ -123,6 +123,26 @@ function contagemItem(chave) {
   };
 }
 
+/* Todas as contagens numa passada so. Antes a lista de itens chamava
+   contagemItem por item, e cada chamada varria a carteira inteira — 28
+   varreduras de 1350 cartoes cada vez que um filtro mudava. */
+function contagensPorItem() {
+  const mapa = new Map();
+  for (const e of filtradas()) {
+    for (const it of (ITENS.get(e.codigo) || [])) {
+      if (it.aplica === false) continue;
+      const k = normalizar(it.item);
+      let c = mapa.get(k);
+      if (!c) { c = { total: 0, sim: 0, nao: 0, branco: 0 }; mapa.set(k, c); }
+      c.total++;
+      if (it.valor === 'sim') c.sim++;
+      else if (it.valor === 'nao') c.nao++;
+      else c.branco++;
+    }
+  }
+  return mapa;
+}
+
 /* ------------------------------------------------------- seletor -------- */
 function filtradas() {
   const termo = normalizar(qs('#f-busca').value.trim());
@@ -219,11 +239,12 @@ function resumoItens() {
 function montarListaItens() {
   const lista = qs('#itens-lista');
   const termo = normalizar(qs('#itens-busca').value.trim());
+  const contagens = contagensPorItem();
   lista.textContent = '';
 
   for (const i of catalogoItens()) {
     if (termo && !normalizar(i.nome).includes(termo)) continue;
-    const c = contagemItem(i.chave);
+    const c = contagens.get(i.chave) || { total: 0, sim: 0, nao: 0, branco: 0 };
     const l = document.createElement('label');
     l.className = 'multi-item';
     const cx = document.createElement('input');
@@ -559,18 +580,46 @@ function renomearItem(card, aoSairDoCampo) {
   const novo = inp.value.trim();
   if (!novo || novo === it.item) { fecharRenomear(card, it.item); return; }
 
-  const repetido = (ITENS.get(it.codigo) || [])
-    .some((o) => o.id !== it.id && normalizar(o.item) === normalizar(novo));
+  const repetido = catalogoItens()
+    .some((i) => i.chave === normalizar(novo) && i.chave !== normalizar(it.item));
   if (repetido) {
     if (aoSairDoCampo) { fecharRenomear(card, it.item); return; }
-    toast('Já existe um item com esse nome nesta empresa.', 'erro');
+    toast('Já existe um item com esse nome no catálogo.', 'erro');
     inp.focus();
     inp.select();
     return;
   }
 
   fecharRenomear(card, novo);
-  gravarItem(it.id, { item: novo });
+  renomearNoCatalogo(it.item, novo);
+}
+
+/* O item e do catalogo: renomear vale para as 50 empresas. Enquanto era por
+   empresa, cada renomeacao refragmentava o catalogo — foi assim que "Saldo
+   inicial" virou "Saldo Inicial" em uma empresa so. */
+async function renomearNoCatalogo(de, para) {
+  const alvo = normalizar(de);
+  const ids = [];
+  for (const lista of ITENS.values()) {
+    for (const x of lista) if (normalizar(x.item) === alvo) ids.push(x.id);
+  }
+
+  sync('salvando');
+  const { data, error } = await sb.from('ctrl_itens')
+    .update({ item: para }).in('id', ids).select();
+
+  if (error) {
+    sync('erro', error.message);
+    toast('Não consegui renomear. A tela pode estar desatualizada — recarregue.', 'erro');
+    return;
+  }
+
+  /* se o filtro estava neste item, segue nele com o nome novo */
+  if (itensEscolhidos.delete(alvo)) itensEscolhidos.add(normalizar(para));
+
+  aplicarItensEmLote('UPDATE', data || [], true);
+  toast(`Renomeado em ${ids.length} ${ids.length === 1 ? 'empresa' : 'empresas'}.`, 'ok');
+  sync('ok');
 }
 
 /* "Nao se aplica" nao apaga nada: o registro fica, so sai do controle
@@ -672,8 +721,7 @@ async function criarItem(nome) {
     return;
   }
   if (itensEscolhidos.size) itensEscolhidos.add(normalizar(limpo));
-  (data || []).forEach((linha) => aplicarItemLocal('INSERT', linha));
-  montarListaItens();
+  aplicarItensEmLote('INSERT', data || []);
   fecharFormNovo();
   toast(`"${limpo}" criado em ${(data || []).length} empresas.`, 'ok');
   sync('ok');
@@ -693,40 +741,56 @@ async function excluirItem(id) {
   sync('salvando');
   const { error } = await sb.from('ctrl_itens').delete().in('id', ids);
   if (error) { sync('erro', error.message); toast('Não consegui excluir o item.', 'erro'); return; }
-  ids.forEach((i) => aplicarItemLocal('DELETE', { id: i }));
+  aplicarItensEmLote('DELETE', ids.map((i) => ({ id: i })));
   toast(`"${it.item}" removido de ${ids.length} empresas.`, 'ok');
   sync('ok');
 }
 
 /* aplica mudanca de item ao estado local, venha daqui ou do tempo real */
-function aplicarItemLocal(tipo, linha) {
+/* So mexe no estado e diz se a estrutura mudou (cartao entrou, saiu ou trocou
+   de grade). Nao desenha nada: quem chama decide quando redesenhar. */
+function aplicarEstadoItem(tipo, linha) {
   if (tipo === 'DELETE') {
-    for (const [cod, lista] of ITENS) {
+    for (const lista of ITENS.values()) {
       const i = lista.findIndex((x) => x.id === linha.id);
-      if (i >= 0) {
-        lista.splice(i, 1);
-        renderCards();
-        break;
-      }
+      if (i >= 0) { lista.splice(i, 1); return true; }
     }
-  } else {
-    const lista = ITENS.get(linha.codigo) || [];
-    const i = lista.findIndex((x) => x.id === linha.id);
-    if (i >= 0) {
-      const mudouAplicacao = (lista[i].aplica !== false) !== (linha.aplica !== false);
-      lista[i] = linha;
-      ITENS.set(linha.codigo, lista);
-      if (mudouAplicacao) renderCards();
-      else repintarCard(linha);     /* nao faz nada se o card nao esta na tela */
-    } else {
-      lista.push(linha);
-      ITENS.set(linha.codigo, lista);
-      renderCards();
-    }
+    return false;
   }
+  const lista = ITENS.get(linha.codigo) || [];
+  const i = lista.findIndex((x) => x.id === linha.id);
+  if (i >= 0) {
+    const mudouGrade = (lista[i].aplica !== false) !== (linha.aplica !== false);
+    lista[i] = linha;
+    ITENS.set(linha.codigo, lista);
+    if (!mudouGrade) repintarCard(linha);   /* nao faz nada se nao esta na tela */
+    return mudouGrade;
+  }
+  lista.push(linha);
+  ITENS.set(linha.codigo, lista);
+  return true;
+}
+
+function redesenhar(estrutural) {
+  if (estrutural) renderCards();
   atualizarKpis();
   montarSeletorEmpresas();
   montarListaItens();
+}
+
+function aplicarItemLocal(tipo, linha) {
+  redesenhar(aplicarEstadoItem(tipo, linha));
+}
+
+/* Criar e excluir mexem em 50 linhas de uma vez. Aplicando uma a uma, cada
+   uma disparava um redesenho completo — 50 varreduras da carteira inteira,
+   segundos de tela travada. Agora o estado inteiro entra antes de desenhar. */
+function aplicarItensEmLote(tipo, linhas, forcar) {
+  let estrutural = !!forcar;
+  for (const linha of linhas) {
+    if (aplicarEstadoItem(tipo, linha)) estrutural = true;
+  }
+  redesenhar(estrutural);
 }
 
 /* --------------------------------------------------- observacoes -------- */

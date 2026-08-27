@@ -41,9 +41,12 @@ empresa: ele desce para a seção *Não se aplica* no fim da página, sai das
 contagens e do PDF, mas o registro fica guardado — **reativar** traz valor, meses
 e observação de volta intactos.
 
-Por isso o `×` exclui de **todas** as empresas: o item é do catálogo. Para tirar
-de uma só, o caminho é "não se aplica". Ambos pedem confirmação em dois cliques;
-reativar vai direto, por ser inofensivo.
+Por isso **criar, renomear e excluir valem para as 50 empresas** — o item é do
+catálogo. Para tirar de uma só, o caminho é "não se aplica". Excluir e desativar
+pedem confirmação em dois cliques; reativar vai direto, por ser inofensivo.
+
+Renomear não mexe no "Atualizado em": trocar o nome não é conferir, e sem essa
+exceção um rename apagaria a data real de 50 cartões.
 
 Abaixo dos cards fica a thread de **observações gerais** da empresa: cada
 registro fica datado e pode ser editado ou excluído.
