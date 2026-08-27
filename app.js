@@ -28,7 +28,6 @@ let EMPRESAS = [];
 let ITENS = new Map();        // codigo -> [linhas de ctrl_itens]
 let OBS = new Map();          // codigo -> [observacoes]
 let sel = null;               // codigo da empresa aberta
-let selItem = null;           // chave normalizada do item aberto (vista por item)
 let editandoObsId = null;
 
 const qs = (s, r) => (r || document).querySelector(s);
@@ -145,9 +144,12 @@ function preencherSelect(id, valores, rotuloTodos) {
 
 function montarSeletorEmpresas() {
   const el = qs('#f-empresa');
+  /* o proprio select e a fonte da verdade agora; `sel` e derivado dele.
+     Sem preservar o valor aqui, reconstruir a lista apagava a escolha. */
+  const atual = el.value;
   const lista = filtradas();
   el.textContent = '';
-  el.append(new Option(lista.length ? '— escolha a empresa —' : '— nenhuma empresa no filtro —', ''));
+  el.append(new Option(lista.length ? '— todas as empresas do filtro —' : '— nenhuma empresa no filtro —', ''));
   for (const e of lista) {
     const c = contagem(e.codigo);
     const marca = c.nao ? '!' : (c.total && c.sim === c.total) ? '✓' : '·';
@@ -156,104 +158,185 @@ function montarSeletorEmpresas() {
   qs('#contagem').textContent = lista.length === EMPRESAS.length
     ? `${EMPRESAS.length} empresas`
     : `${lista.length} de ${EMPRESAS.length} empresas`;
-  if (sel && lista.some((e) => e.codigo === sel)) el.value = sel;
-  else el.value = '';
+  el.value = (atual && lista.some((e) => e.codigo === atual)) ? atual : '';
 }
 
-function montarSeletorItens() {
-  const el = qs('#f-item');
-  const lista = catalogoItens();
-  el.textContent = '';
-  el.append(new Option('— ver por item —', ''));
-  for (const i of lista) {
-    const c = contagemItem(i.chave);
-    const marca = c.nao ? '!' : (c.total && c.sim === c.total) ? '✓' : '·';
-    el.append(new Option(`${marca}  ${i.nome}  (${c.total})`, i.chave));
-  }
-  el.value = selItem || '';
-}
 
 /* --------------------------------------------------------- ficha -------- */
-function abrir(cod) {
-  selItem = null;
-  qs('#f-item').value = '';
-  sel = cod || null;
-  try { sel ? localStorage.setItem(K_SEL, sel) : localStorage.removeItem(K_SEL); } catch { /* privado */ }
 
-  const e = EMPRESAS.find((x) => x.codigo === sel);
-  qs('#vazio').hidden = !!e;
-  qs('#conteudo').hidden = !e;
-  if (!e) { atualizarKpis(); return; }
+/* Vista por item: um card por empresa que tem aquele item. */
 
-  qs('#ficha-empresa').hidden = false;
-  qs('#ficha-item').hidden = true;
-  qs('#bloco-obs').hidden = false;
-  qs('#titulo-cards').textContent = 'Itens de conferência';
-  qs('#btn-pdf').textContent = 'PDF da empresa';
 
+/* ===== escopo x itens =====================================================
+   Uma tela so. O ESCOPO diz quais empresas entram (empresa, grupo, regime,
+   periodicidade, busca) e a MULTIESCOLHA diz quais itens. Cada cartao e um
+   par (empresa, item). "Uma empresa, todos os itens" e "um item, varias
+   empresas" deixam de ser telas rivais e viram duas combinacoes da mesma. */
+
+const LIMITE_CARTOES = 400;
+let itensEscolhidos = new Set();   /* vazio = todos os itens */
+
+function escopoEmpresas() {
+  const cod = qs('#f-empresa').value;
+  const base = filtradas();
+  return cod ? base.filter((e) => e.codigo === cod) : base;
+}
+
+/* Sem nenhum recorte nao ha o que mostrar: 50 empresas x 37 itens seriam
+   milhares de cartoes e nenhuma leitura util. */
+function haEscopo() {
+  return !!(qs('#f-empresa').value || qs('#f-grupo').value || qs('#f-regime').value
+         || qs('#f-periodo').value || qs('#f-busca').value.trim() || itensEscolhidos.size);
+}
+
+function paresVisiveis() {
+  const pares = [];
+  for (const e of escopoEmpresas()) {
+    for (const it of itensDe(e.codigo)) {
+      if (itensEscolhidos.size && !itensEscolhidos.has(normalizar(it.item))) continue;
+      pares.push({ empresa: e, item: it });
+    }
+  }
+  return pares;
+}
+
+function resumoItens() {
+  if (!itensEscolhidos.size) return 'Todos os itens';
+  if (itensEscolhidos.size === 1) {
+    const reg = catalogoItens().find((i) => i.chave === [...itensEscolhidos][0]);
+    return reg ? reg.nome : '1 item';
+  }
+  return itensEscolhidos.size + ' itens';
+}
+
+/* ---------- multiescolha de itens ---------- */
+function montarListaItens() {
+  const lista = qs('#itens-lista');
+  const termo = normalizar(qs('#itens-busca').value.trim());
+  lista.textContent = '';
+
+  for (const i of catalogoItens()) {
+    if (termo && !normalizar(i.nome).includes(termo)) continue;
+    const c = contagemItem(i.chave);
+    const l = document.createElement('label');
+    l.className = 'multi-item';
+    const cx = document.createElement('input');
+    cx.type = 'checkbox';
+    cx.value = i.chave;
+    cx.checked = itensEscolhidos.has(i.chave);
+    l.append(
+      cx,
+      Object.assign(document.createElement('span'), { className: 'multi-nome', textContent: i.nome }),
+      Object.assign(document.createElement('span'), {
+        className: 'multi-cont',
+        textContent: c.nao ? c.nao + ' pend.' : (c.total && c.sim === c.total ? 'ok' : c.total)
+      })
+    );
+    lista.append(l);
+  }
+  qs('#itens-resumo').textContent = resumoItens();
+}
+
+/* ---------- a tela ---------- */
+function preencherFichaEmpresa(e) {
   qs('#ficha-cod').textContent = 'Código ' + e.codigo;
   qs('#ficha-nome').textContent = e.empresa;
   qs('#ficha-cnpj').textContent = e.cnpj || '—';
   qs('#ficha-grupo').textContent = e.grupo + (e.regional ? ' · ' + e.regional : '');
   qs('#ficha-regime').textContent = e.regime + (e.atividade ? ' · ' + e.atividade : '');
   qs('#ficha-periodo').textContent = e.periodicidade;
+}
+
+function preencherFichaEscopo(empresas, quantosCartoes) {
+  const partes = [];
+  if (qs('#f-grupo').value) partes.push(qs('#f-grupo').value);
+  if (qs('#f-regime').value) partes.push(qs('#f-regime').value);
+  if (qs('#f-periodo').value) partes.push(qs('#f-periodo').value);
+  if (qs('#f-busca').value.trim()) partes.push('"' + qs('#f-busca').value.trim() + '"');
+
+  qs('#escopo-eyebrow').textContent = resumoItens();
+  qs('#escopo-nome').textContent = partes.length ? partes.join(' · ') : 'Todas as empresas';
+  qs('#escopo-empresas').textContent = empresas.length;
+  qs('#escopo-cartoes').textContent = quantosCartoes;
+}
+
+function render() {
+  const temEscopo = haEscopo();
+  qs('#vazio').hidden = temEscopo;
+  qs('#conteudo').hidden = !temEscopo;
+  if (!temEscopo) { sel = null; atualizarKpis(); return; }
+
+  const empresas = escopoEmpresas();
+  const unica = empresas.length === 1 ? empresas[0] : null;
+  /* sel alimenta as observacoes gerais, que so existem com uma empresa */
+  sel = unica ? unica.codigo : null;
+  try { sel ? localStorage.setItem(K_SEL, sel) : localStorage.removeItem(K_SEL); } catch { /* privado */ }
+
+  qs('#ficha-empresa').hidden = !unica;
+  qs('#ficha-escopo').hidden = !!unica;
+  qs('#bloco-obs').hidden = !unica;
+  qs('#btn-pdf').textContent = unica ? 'PDF da empresa' : 'PDF da seleção';
+  qs('#titulo-cards').textContent = unica ? 'Itens de conferência' : 'Cartões';
+
+  if (unica) {
+    preencherFichaEmpresa(unica);
+    renderObs();
+    sairDaEdicaoObs();
+    qs('#obs-texto').value = '';
+  }
 
   renderCards();
-  renderObs();
-  sairDaEdicaoObs();
-  qs('#obs-texto').value = '';
   atualizarKpis();
 }
 
-/* Vista por item: um card por empresa que tem aquele item. */
-function abrirItem(chave) {
-  sel = null;
-  qs('#f-empresa').value = '';
-  try { localStorage.removeItem(K_SEL); } catch { /* privado */ }
-  selItem = chave || null;
+function avisoGrade(texto) {
+  return Object.assign(document.createElement('p'),
+    { className: 'vazio-selecao', textContent: texto });
+}
 
-  const reg = selItem ? catalogoItens().find((i) => i.chave === selItem) : null;
-  qs('#vazio').hidden = !!reg;
-  qs('#conteudo').hidden = !reg;
-  if (!reg) { atualizarKpis(); return; }
+function renderCards() {
+  const grade = qs('#cards');
+  grade.textContent = '';
+  if (!haEscopo()) return;
 
-  qs('#ficha-empresa').hidden = true;
-  qs('#ficha-item').hidden = false;
-  qs('#bloco-obs').hidden = true;          /* observacao geral e da empresa */
-  qs('#titulo-cards').textContent = 'Empresas';
-  qs('#btn-pdf').textContent = 'PDF do item';
+  const empresas = escopoEmpresas();
+  const pares = paresVisiveis();
+  const varias = empresas.length !== 1;
 
-  qs('#item-nome').textContent = reg.nome;
-  renderCards();
-  atualizarKpis();
+  /* com mais de uma empresa em cena, o cabecalho descreve a selecao */
+  if (varias) preencherFichaEscopo(empresas, pares.length);
+
+  if (pares.length > LIMITE_CARTOES) {
+    grade.append(avisoGrade(
+      `${pares.length} cartões nesta combinação — muita coisa para uma tela só. `
+      + 'Escolha um grupo, uma empresa ou marque os itens que interessam.'));
+    return;
+  }
+
+  for (const p of pares) grade.append(cardDe(p.item, varias ? p.empresa : null));
+
+  /* criar item exige saber em qual empresa, e o novo item precisa aparecer */
+  if (empresas.length === 1 && !itensEscolhidos.size) grade.append(cardNovo());
+
+  if (!pares.length) grade.append(avisoGrade('Nenhum cartão para esta combinação.'));
 }
 
 function atualizarKpis() {
-  if (selItem) {
-    const c = contagemItem(selItem);
-    qs('#kpi-ok').textContent = c.sim;
-    qs('#kpi-nao').textContent = c.nao;
-    qs('#kpi-branco').textContent = c.branco;
-    const pct = c.total ? Math.round((c.sim / c.total) * 100) : 0;
-    qs('#item-barra').style.width = pct + '%';
-    qs('#item-quantas').textContent = c.total;
-    qs('#item-progresso').textContent =
-      `${c.sim} de ${c.total} ${c.total === 1 ? 'empresa conferida' : 'empresas conferidas'} (${pct}%)`;
-    return;
-  }
-  if (!sel) {
-    qs('#kpi-ok').textContent = '—';
-    qs('#kpi-nao').textContent = '—';
-    qs('#kpi-branco').textContent = '—';
-    return;
-  }
-  const c = contagem(sel);
-  qs('#kpi-ok').textContent = c.sim;
-  qs('#kpi-nao').textContent = c.nao;
-  qs('#kpi-branco').textContent = c.branco;
-  const pct = c.total ? Math.round((c.sim / c.total) * 100) : 0;
+  const pares = haEscopo() ? paresVisiveis() : [];
+  const sim = pares.filter((p) => p.item.valor === 'sim').length;
+  const nao = pares.filter((p) => p.item.valor === 'nao').length;
+  const branco = pares.length - sim - nao;
+
+  qs('#kpi-ok').textContent = pares.length ? sim : '—';
+  qs('#kpi-nao').textContent = pares.length ? nao : '—';
+  qs('#kpi-branco').textContent = pares.length ? branco : '—';
+
+  const pct = pares.length ? Math.round((sim / pares.length) * 100) : 0;
+  const texto = `${sim} de ${pares.length} conferidos (${pct}%)`;
   qs('#barra-i').style.width = pct + '%';
-  qs('#progresso-txt').textContent = `${c.sim} de ${c.total} itens conferidos (${pct}%)`;
+  qs('#progresso-txt').textContent = texto;
+  qs('#escopo-barra').style.width = pct + '%';
+  qs('#escopo-progresso').textContent = texto;
 }
 
 /* --------------------------------------------------------- cards -------- */
@@ -266,29 +349,18 @@ function cardDe(it, empresaDoCard) {
   const h = document.createElement('div');
   h.className = 'card-h';
 
-  if (empresaDoCard) {
-    /* vista por item: o titulo e a empresa. Renomear e excluir sao acoes
-       sobre o ITEM e ficariam ambiguas aqui, entao nao aparecem. */
-    card.dataset.modo = 'item';
-    const t = document.createElement('span');
-    t.className = 'card-t card-t-fixo';
-    t.textContent = empresaDoCard.codigo + ' — ' + empresaDoCard.empresa;
-    t.title = empresaDoCard.grupo + (empresaDoCard.regional ? ' · ' + empresaDoCard.regional : '');
-    h.append(t);
-  } else {
-    /* Todo card e editavel: o que vale numa empresa nao vale em outra.
-       O flag `padrao` fica so como procedencia, nao trava mais nada. */
-    const t = document.createElement('button');
-    t.type = 'button';
-    t.className = 'card-t';
-    t.textContent = it.item;
-    t.title = 'Clique para renomear';
-    const x = document.createElement('button');
-    x.type = 'button';
-    x.className = 'card-x';
-    x.title = 'Excluir este item';
-    h.append(t, x);
-  }
+  /* Todo card e editavel: o que vale numa empresa nao vale em outra.
+     O flag `padrao` fica so como procedencia, nao trava mais nada. */
+  const t = document.createElement('button');
+  t.type = 'button';
+  t.className = 'card-t';
+  t.textContent = it.item;
+  t.title = 'Clique para renomear';
+  const x = document.createElement('button');
+  x.type = 'button';
+  x.className = 'card-x';
+  x.title = 'Excluir este item';
+  h.append(t, x);
 
   const seg = document.createElement('div');
   seg.className = 'seg';
@@ -329,6 +401,15 @@ function cardDe(it, empresaDoCard) {
   const pe = document.createElement('p');
   pe.className = 'card-pe';
   pe.textContent = it.atualizado_em ? 'Atualizado em ' + agora(it.atualizado_em) : '';
+
+  if (empresaDoCard) {
+    /* com varias empresas na tela, o cartao precisa dizer de quem ele e */
+    const et = document.createElement('span');
+    et.className = 'card-empresa';
+    et.textContent = empresaDoCard.codigo + ' · ' + empresaDoCard.empresa;
+    et.title = empresaDoCard.grupo + (empresaDoCard.regional ? ' · ' + empresaDoCard.regional : '');
+    card.append(et);
+  }
 
   card.append(h, seg, mt, meses, ta, pe);
   pintarMeses(card, it);
@@ -392,26 +473,6 @@ function fecharFormNovo() {
   el.replaceWith(cardNovo());
 }
 
-function renderCards() {
-  const grade = qs('#cards');
-  grade.textContent = '';
-
-  if (selItem) {
-    const linhas = linhasDoItem(selItem);
-    for (const l of linhas) grade.append(cardDe(l.item, l.empresa));
-    if (!linhas.length) {
-      grade.append(Object.assign(document.createElement('p'), {
-        className: 'vazio-selecao',
-        textContent: 'Nenhuma empresa do filtro tem este item.'
-      }));
-    }
-    return;                                /* nao ha "+" aqui: item ja existe */
-  }
-
-  if (!sel) return;
-  for (const it of itensDe(sel)) grade.append(cardDe(it));
-  grade.append(cardNovo());
-}
 
 function repintarCard(it) {
   const card = qs(`.card[data-id="${CSS.escape(it.id)}"]`);
@@ -581,7 +642,7 @@ function aplicarItemLocal(tipo, linha) {
       const i = lista.findIndex((x) => x.id === linha.id);
       if (i >= 0) {
         lista.splice(i, 1);
-        if (cod === sel || selItem) renderCards();
+        renderCards();
         break;
       }
     }
@@ -595,12 +656,12 @@ function aplicarItemLocal(tipo, linha) {
     } else {
       lista.push(linha);
       ITENS.set(linha.codigo, lista);
-      if (linha.codigo === sel || selItem) renderCards();
+      renderCards();
     }
   }
   atualizarKpis();
   montarSeletorEmpresas();
-  montarSeletorItens();
+  montarListaItens();
 }
 
 /* --------------------------------------------------- observacoes -------- */
@@ -749,19 +810,21 @@ function textoFiltros() {
   return p;
 }
 
-function pdfItem() {
-  const reg = catalogoItens().find((i) => i.chave === selItem);
-  if (!reg) { toast('Escolha um item primeiro.', 'erro'); return; }
-  const linhas = linhasDoItem(selItem);
-  if (!linhas.length) { toast('Nenhuma empresa do filtro tem este item.', 'erro'); return; }
-  const c = contagemItem(selItem);
+function pdfSelecao() {
+  const pares = paresVisiveis();
+  if (!pares.length) { toast('Nenhum cartão nesta seleção.', 'erro'); return; }
+  const sim = pares.filter((x) => x.item.valor === 'sim').length;
+  const nao = pares.filter((x) => x.item.valor === 'nao').length;
+  const c = { total: pares.length, sim, nao, branco: pares.length - sim - nao };
   const p = textoFiltros();
+  const linhas = pares;
 
   baixar(window.ControlePDF.buildItem({
-    item: reg.nome,
+    item: resumoItens(),
     rows: linhas.map((l) => ({
       codigo: l.empresa.codigo,
       empresa: l.empresa.empresa + (l.empresa.grupo ? '  ·  ' + l.empresa.grupo : ''),
+      nomeItem: l.item.item,
       valor: l.item.valor || '',
       observacao: [resumoMeses(l.item), l.item.observacao].filter(Boolean).join('\n') || '—',
       quando: l.item.atualizado_em ? agora(l.item.atualizado_em) : '—',
@@ -769,10 +832,10 @@ function pdfItem() {
     })),
     emitido: 'Emitido em ' + agora(),
     filtros: p.length ? p.join(' · ') : 'nenhum (todas as empresas)',
-    resumo: `${c.total} ${c.total === 1 ? 'empresa' : 'empresas'} · ${c.sim} conferidas`
+    resumo: `${c.total} ${c.total === 1 ? 'cartão' : 'cartões'} · ${c.sim} conferidos`
           + ` · ${c.nao} com pendência · ${c.branco} em branco`,
     rodape: 'GrupoPro · Controle de Entregas Contábil — uso interno'
-  }), `Controle_item_${reg.nome.replace(/[^A-Za-z0-9]+/g, '-')}_${dataArquivo()}.pdf`, c.total);
+  }), `Controle_selecao_${dataArquivo()}.pdf`, c.total, ['cartão', 'cartões']);
 }
 
 function pdfGeral() {
@@ -808,13 +871,14 @@ function dataArquivo() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-function baixar(bytes, nome, quantos) {
+function baixar(bytes, nome, quantos, rotulo) {
   const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
   const a = document.createElement('a');
   a.href = url; a.download = nome;
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  toast(`PDF gerado (${quantos} ${quantos === 1 ? 'empresa' : 'empresas'}).`, 'ok');
+  const r = rotulo || ['empresa', 'empresas'];
+  toast(`PDF gerado (${quantos} ${quantos === 1 ? r[0] : r[1]}).`, 'ok');
 }
 
 /* --------------------------------------------------------- eventos ------ */
@@ -822,18 +886,38 @@ function baixar(bytes, nome, quantos) {
    estreitam a lista de empresas e, na vista por item, quais empresas aparecem. */
 function aoMudarFiltro() {
   montarSeletorEmpresas();
-  montarSeletorItens();
-  if (selItem) { renderCards(); atualizarKpis(); }
+  montarListaItens();
+  render();
 }
 
 function ligarEventos() {
-  qs('#f-empresa').addEventListener('change', (ev) => abrir(ev.target.value));
-  qs('#f-item').addEventListener('change', (ev) => abrirItem(ev.target.value));
+  qs('#f-empresa').addEventListener('change', aoMudarFiltro);
+
+  /* multiescolha de itens */
+  qs('#itens-lista').addEventListener('change', (ev) => {
+    const cx = ev.target.closest('input[type="checkbox"]');
+    if (!cx) return;
+    if (cx.checked) itensEscolhidos.add(cx.value); else itensEscolhidos.delete(cx.value);
+    qs('#itens-resumo').textContent = resumoItens();
+    render();
+  });
+  qs('#itens-busca').addEventListener('input', montarListaItens);
+  qs('#f-itens .multi-acoes').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-acao]');
+    if (!b) return;
+    if (b.dataset.acao === 'todos') {
+      itensEscolhidos = new Set(catalogoItens().map((i) => i.chave));
+    } else {
+      itensEscolhidos.clear();
+    }
+    montarListaItens();
+    render();
+  });
   ['f-grupo', 'f-regime', 'f-periodo'].forEach((id) =>
     qs('#' + id).addEventListener('change', aoMudarFiltro));
   qs('#f-busca').addEventListener('input', aoMudarFiltro);
 
-  qs('#btn-pdf').addEventListener('click', () => (selItem ? pdfItem() : pdfEmpresa()));
+  qs('#btn-pdf').addEventListener('click', () => (sel ? pdfEmpresa() : pdfSelecao()));
   qs('#btn-pdf-geral').addEventListener('click', pdfGeral);
 
   qs('#obs-salvar').addEventListener('click', salvarObs);
@@ -937,8 +1021,14 @@ function ligarEventos() {
 }
 
 /* ---------------------------------------------------------- inicio ------ */
+let canalRealtime = null;
 function ouvirTempoReal() {
-  sb.channel('controle-entregas')
+  /* Assinar duas vezes o mesmo canal derruba o tempo real:
+     "cannot add postgres_changes callbacks after subscribe()". Acontece de
+     verdade quando alguem troca a senha ja dentro do app, porque esse fluxo
+     volta por depoisDoLogin(). */
+  if (canalRealtime) return;
+  canalRealtime = sb.channel('controle-entregas')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ctrl_itens' }, (p) => {
       if (p.eventType === 'DELETE') { aplicarItemLocal('DELETE', p.old); return; }
       /* Descarta eco atrasado: so aplica o que for mais novo que o local.
@@ -952,7 +1042,12 @@ function ouvirTempoReal() {
     .subscribe();
 }
 
+let dadosCarregados = false;
 async function carregarDados() {
+  /* trocar senha estando logado passa por aqui de novo: nao vale recarregar
+     a carteira inteira, so voltar a desenhar. */
+  if (dadosCarregados) { render(); return; }
+
   const [emp, itens, obs] = await Promise.all([
     sb.from('ctrl_empresas').select('*').order('ordem'),
     sb.from('ctrl_itens').select('*'),
@@ -986,8 +1081,10 @@ async function carregarDados() {
   if (inicial && EMPRESAS.some((e) => e.codigo === inicial)) sel = inicial;
 
   montarSeletorEmpresas();
-  montarSeletorItens();
-  abrir(sel);
+  dadosCarregados = true;
+  montarListaItens();
+  if (sel) qs('#f-empresa').value = sel;
+  render();
   ouvirTempoReal();
   sync('ok');
 }

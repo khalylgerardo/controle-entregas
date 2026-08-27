@@ -10,16 +10,25 @@ o endereço antigo `khalylgerardo.github.io/controle-entregas` redireciona para 
 
 ## Como funciona
 
-A tela tem **dois eixos de entrada**, e eles se excluem:
+A tela tem **dois eixos independentes** que se combinam:
 
-- **Por empresa** — uma empresa, todos os seus itens.
-- **Por item** — um item, todas as empresas que o têm. É a vista para perguntar
-  "quem está pendente na Folha?" sem abrir ficha por ficha. Aqui o card mostra a
-  empresa; renomear e excluir não aparecem, porque seriam ações sobre o item e
-  ficariam ambíguas nesse contexto. As observações gerais também somem — elas são
-  da empresa, não do item.
+- **Escopo** — quais empresas entram: empresa, grupo empresarial, regime,
+  periodicidade ou busca.
+- **Itens** — quais itens aparecem, por caixas de seleção. Nada marcado = todos.
 
-Os filtros de grupo, regime e periodicidade valem para as duas vistas.
+Cada cartão é um par (empresa, item). "Uma empresa com todos os seus itens" e
+"um item em várias empresas" são apenas duas combinações da mesma tela.
+
+Exemplo do dia a dia: marcar **Folha** e escolher o grupo **Kanpek** traz a folha
+de todas as empresas do grupo numa tela só, para ir ticando conforme integra —
+sem trocar de empresa a cada uma.
+
+Quando há mais de uma empresa em cena, cada cartão ganha uma etiqueta com o
+código e o nome dela. Com uma empresa só, aparece a ficha completa, o cartão `+`
+para criar itens e a thread de observações gerais.
+
+Acima de 400 cartões a tela pede um recorte em vez de renderizar — não há leitura
+útil numa parede de mil cartões.
 
 Escolha a empresa no seletor do topo. A ficha abre com um card por item de
 conferência — cada card tem **Sim / Não** e um campo de observação daquele item.

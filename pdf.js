@@ -398,7 +398,7 @@
   function buildItem(o) {
     var ctx = new Ctx(A4_RETRATO[0], A4_RETRATO[1], {
       title: o.item || 'Item',
-      subtitle: 'Situacao deste item em cada empresa',
+      subtitle: 'Situacao de cada cartao da selecao',
       emitido: o.emitido,
       filtros: o.filtros,
       resumo: o.resumo,
@@ -406,11 +406,12 @@
     });
 
     ctx.cols = escalar([
-      { key: 'codigo', label: 'Codigo', w: 44, align: 'l', bold: true },
-      { key: 'empresa', label: 'Empresa', w: 176, align: 'l', wrap: 3 },
-      { key: 'valor', label: 'Situacao', w: 52, align: 'c', flag: true },
-      { key: 'observacao', label: 'Observacao', w: 181, align: 'l', wrap: 6 },
-      { key: 'quando', label: 'Atualizado em', w: 86, align: 'l', wrap: 2 }
+      { key: 'codigo', label: 'Codigo', w: 40, align: 'l', bold: true },
+      { key: 'empresa', label: 'Empresa', w: 132, align: 'l', wrap: 3 },
+      { key: 'nomeItem', label: 'Item', w: 94, align: 'l', wrap: 2, bold: true },
+      { key: 'valor', label: 'Situacao', w: 48, align: 'c', flag: true },
+      { key: 'observacao', label: 'Observacao', w: 144, align: 'l', wrap: 6 },
+      { key: 'quando', label: 'Atualizado', w: 81, align: 'l', wrap: 2 }
     ], A4_RETRATO[0] - M * 2);
 
     ctx.nova('title');

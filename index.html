@@ -7,11 +7,11 @@
 <!-- link aberto por decisao do time: ao menos mantemos fora dos buscadores -->
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
-<link rel="icon" type="image/png" href="favicon.png?v=20260824a">
+<link rel="icon" type="image/png" href="favicon.png?v=20260824e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20260824a">
+<link rel="stylesheet" href="styles.css?v=20260824e">
 <script>
   /* roda antes do body existir: sem isto a pagina pinta no tema do sistema e
      so depois corrige para a escolha salva, causando um flash. */
@@ -101,9 +101,20 @@
       <label for="f-empresa">Empresa</label>
       <select id="f-empresa"><option value="">Carregando…</option></select>
     </div>
-    <div class="field item">
-      <label for="f-item">Ou por item</label>
-      <select id="f-item"></select>
+    <div class="field itens">
+      <label for="f-itens-btn">Itens de conferência</label>
+      <details class="multi" id="f-itens">
+        <summary id="f-itens-btn"><span id="itens-resumo">Todos os itens</span></summary>
+        <div class="multi-painel">
+          <div class="multi-acoes">
+            <button type="button" class="btn small ghost" data-acao="todos">Todos</button>
+            <button type="button" class="btn small ghost" data-acao="nenhum">Limpar</button>
+            <input type="search" id="itens-busca" placeholder="Buscar item…"
+                   autocomplete="off" spellcheck="false">
+          </div>
+          <div class="multi-lista" id="itens-lista"></div>
+        </div>
+      </details>
     </div>
     <div class="field busca">
       <label for="f-busca">Filtrar a lista</label>
@@ -129,7 +140,8 @@
 
   <div class="painel" id="painel">
     <p class="vazio-selecao" id="vazio">
-      Escolha uma empresa no seletor acima para abrir a ficha de conferência.
+      Escolha uma <strong>empresa</strong> — ou um <strong>grupo</strong>, regime ou
+      periodicidade — para abrir os cartões de conferência.
     </p>
 
     <section id="conteudo" hidden>
@@ -150,17 +162,18 @@
         </div>
       </div>
 
-      <div class="ficha ficha-item" id="ficha-item" hidden>
+      <div class="ficha ficha-escopo" id="ficha-escopo" hidden>
         <div>
-          <span class="ficha-cod">Item</span>
-          <h2 id="item-nome"></h2>
+          <span class="ficha-cod" id="escopo-eyebrow">Seleção</span>
+          <h2 id="escopo-nome"></h2>
         </div>
         <dl>
-          <div class="par"><dt>Empresas com este item</dt><dd id="item-quantas"></dd></div>
+          <div class="par"><dt>Empresas</dt><dd id="escopo-empresas"></dd></div>
+          <div class="par"><dt>Cartões</dt><dd id="escopo-cartoes"></dd></div>
         </dl>
         <div class="progresso">
-          <div class="barra"><i id="item-barra" style="width:0%"></i></div>
-          <span id="item-progresso"></span>
+          <div class="barra"><i id="escopo-barra" style="width:0%"></i></div>
+          <span id="escopo-progresso"></span>
         </div>
       </div>
 
@@ -214,7 +227,7 @@
   </div>
 </dialog>
 
-<script src="pdf.js?v=20260824a"></script>
-<script type="module" src="app.js?v=20260824a"></script>
+<script src="pdf.js?v=20260824e"></script>
+<script type="module" src="app.js?v=20260824e"></script>
 </body>
 </html>
