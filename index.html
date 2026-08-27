@@ -7,11 +7,11 @@
 <!-- link aberto por decisao do time: ao menos mantemos fora dos buscadores -->
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
-<link rel="icon" type="image/png" href="favicon.png?v=20260824e">
+<link rel="icon" type="image/png" href="favicon.png?v=20260824i">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20260824e">
+<link rel="stylesheet" href="styles.css?v=20260824i">
 <script>
   /* roda antes do body existir: sem isto a pagina pinta no tema do sistema e
      so depois corrige para a escolha salva, causando um flash. */
@@ -180,6 +180,17 @@
       <h3 class="secao-titulo" id="titulo-cards" style="margin:6px 0 0">Itens de conferência</h3>
       <div class="cards" id="cards"></div>
 
+      <div id="bloco-inativos" hidden>
+        <h3 class="secao-titulo" style="margin:14px 0 0">
+          Não se aplica <span class="secao-cont" id="inativos-cont"></span>
+        </h3>
+        <p class="secao-nota">
+          Fora do controle destas empresas. As marcações ficam guardadas — reativar
+          traz tudo de volta.
+        </p>
+        <div class="cards inativos" id="cards-inativos"></div>
+      </div>
+
       <div id="bloco-obs">
       <h3 class="secao-titulo" style="margin:10px 0 0">Observações gerais da empresa</h3>
       <div class="obs-list" id="obs-lista"></div>
@@ -227,7 +238,7 @@
   </div>
 </dialog>
 
-<script src="pdf.js?v=20260824e"></script>
-<script type="module" src="app.js?v=20260824e"></script>
+<script src="pdf.js?v=20260824i"></script>
+<script type="module" src="app.js?v=20260824i"></script>
 </body>
 </html>

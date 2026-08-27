@@ -74,7 +74,7 @@ const itensDe = (cod) => (ITENS.get(cod) || [])
   .slice().sort((a, b) => a.ordem - b.ordem || a.item.localeCompare(b.item, 'pt-BR'));
 
 function contagem(cod) {
-  const l = ITENS.get(cod) || [];
+  const l = (ITENS.get(cod) || []).filter((i) => i.aplica !== false);
   return {
     total: l.length,
     sim: l.filter((i) => i.valor === 'sim').length,
@@ -106,7 +106,8 @@ function catalogoItens() {
 function linhasDoItem(chave) {
   const saida = [];
   for (const e of filtradas()) {
-    const it = (ITENS.get(e.codigo) || []).find((x) => normalizar(x.item) === chave);
+    const it = (ITENS.get(e.codigo) || [])
+      .find((x) => normalizar(x.item) === chave && x.aplica !== false);
     if (it) saida.push({ empresa: e, item: it });
   }
   return saida;
@@ -189,16 +190,19 @@ function haEscopo() {
          || qs('#f-periodo').value || qs('#f-busca').value.trim() || itensEscolhidos.size);
 }
 
-function paresVisiveis() {
+function paresPorAplicacao(aplica) {
   const pares = [];
   for (const e of escopoEmpresas()) {
     for (const it of itensDe(e.codigo)) {
+      if ((it.aplica !== false) !== aplica) continue;
       if (itensEscolhidos.size && !itensEscolhidos.has(normalizar(it.item))) continue;
       pares.push({ empresa: e, item: it });
     }
   }
   return pares;
 }
+const paresVisiveis = () => paresPorAplicacao(true);
+const paresInativos = () => paresPorAplicacao(false);
 
 function resumoItens() {
   if (!itensEscolhidos.size) return 'Todos os itens';
@@ -315,10 +319,25 @@ function renderCards() {
 
   for (const p of pares) grade.append(cardDe(p.item, varias ? p.empresa : null));
 
-  /* criar item exige saber em qual empresa, e o novo item precisa aparecer */
-  if (empresas.length === 1 && !itensEscolhidos.size) grade.append(cardNovo());
+  /* o item criado vale para todas as empresas, mas nasceria escondido se
+     houvesse filtro de item ligado */
+  if (!itensEscolhidos.size) grade.append(cardNovo());
 
   if (!pares.length) grade.append(avisoGrade('Nenhum cartão para esta combinação.'));
+
+  renderInativos(varias);
+}
+
+function renderInativos(varias) {
+  const grade = qs('#cards-inativos');
+  const bloco = qs('#bloco-inativos');
+  const pares = paresInativos();
+  grade.textContent = '';
+  bloco.hidden = !pares.length;
+  if (!pares.length) return;
+  qs('#inativos-cont').textContent =
+    pares.length === 1 ? '1 cartão' : pares.length + ' cartões';
+  for (const p of pares) grade.append(cardDe(p.item, varias ? p.empresa : null));
 }
 
 function atualizarKpis() {
@@ -398,9 +417,17 @@ function cardDe(it, empresaDoCard) {
   ta.value = it.observacao || '';
   ta.setAttribute('aria-label', 'Observação sobre ' + it.item);
 
-  const pe = document.createElement('p');
-  pe.className = 'card-pe';
-  pe.textContent = it.atualizado_em ? 'Atualizado em ' + agora(it.atualizado_em) : '';
+  const pe = document.createElement('div');
+  pe.className = 'card-pe card-pe-linha';
+  pe.append(Object.assign(document.createElement('span'), {
+    className: 'card-quando',
+    textContent: it.atualizado_em ? 'Atualizado em ' + agora(it.atualizado_em) : ''
+  }));
+  const na = document.createElement('button');
+  na.type = 'button';
+  na.className = 'card-na';
+  na.textContent = it.aplica === false ? 'reativar' : 'não se aplica';
+  pe.append(na);
 
   if (empresaDoCard) {
     /* com varias empresas na tela, o cartao precisa dizer de quem ele e */
@@ -488,7 +515,9 @@ function repintarCard(it) {
   const ta = qs('.card-obs', card);
   if (document.activeElement !== ta) ta.value = it.observacao || '';
   pintarMeses(card, it);
-  qs('.card-pe', card).textContent = it.atualizado_em ? 'Atualizado em ' + agora(it.atualizado_em) : '';
+  qs('.card-quando', card).textContent =
+    it.atualizado_em ? 'Atualizado em ' + agora(it.atualizado_em) : '';
+  qs('.card-na', card).textContent = it.aplica === false ? 'reativar' : 'não se aplica';
 }
 
 /* ---- renomear o item ---- */
@@ -542,6 +571,14 @@ function renomearItem(card, aoSairDoCampo) {
   gravarItem(it.id, { item: novo });
 }
 
+/* "Nao se aplica" nao apaga nada: o registro fica, so sai do controle
+   daquela empresa e some das contagens. Reativar traz de volta intacto. */
+function alternarAplicacao(id) {
+  const it = acharItem(id);
+  if (!it) return;
+  gravarItem(id, { aplica: it.aplica === false });
+}
+
 /* nao avaliado -> tem -> nao tem -> nao avaliado */
 function alternarMes(id, chave) {
   const it = acharItem(id);
@@ -570,7 +607,9 @@ async function gravarItem(id, patch) {
      Manter o carimbo antigo garante que o eco que voltar seja sempre mais
      novo que o local, e a comparacao no tempo real resolve a corrida. */
   Object.assign(it, patch);
-  repintarCard(it);
+  /* `aplica` troca o cartao de grade (ativos <-> nao se aplica): repintar no
+     lugar nao basta, tem de redesenhar. */
+  if ('aplica' in patch) renderCards(); else repintarCard(it);
   atualizarKpis();
   montarSeletorEmpresas();
 
@@ -581,7 +620,7 @@ async function gravarItem(id, patch) {
 
   if (error) {
     Object.assign(it, antes);
-    repintarCard(it);
+    if ('aplica' in patch) renderCards(); else repintarCard(it);
     atualizarKpis();
     montarSeletorEmpresas();
     sync('erro', error.message);
@@ -598,21 +637,31 @@ function agendarObsItem(id, texto) {
   debounces.set(id, setTimeout(() => gravarItem(id, { observacao: texto }), 700));
 }
 
+/* O item e do catalogo, nao de uma empresa: nasce em todas. Onde nao fizer
+   sentido, marca-se "nao se aplica" — que preserva o registro. */
 async function criarItem(nome) {
   const limpo = nome.trim();
   const erro = qs('#novo-erro');
   if (!limpo) { erro.textContent = 'Dê um nome ao item.'; return; }
-  const existe = (ITENS.get(sel) || []).some(
-    (i) => normalizar(i.item) === normalizar(limpo));
-  if (existe) { erro.textContent = 'Já existe um item com esse nome nesta empresa.'; return; }
+  if (catalogoItens().some((i) => i.chave === normalizar(limpo))) {
+    erro.textContent = 'Já existe um item com esse nome.';
+    return;
+  }
 
-  const maior = (ITENS.get(sel) || []).reduce((a, i) => Math.max(a, i.ordem), 0);
+  let maior = 0;
+  for (const lista of ITENS.values()) {
+    for (const i of lista) maior = Math.max(maior, i.ordem);
+  }
+
   qs('#novo-salvar').disabled = true;
   sync('salvando');
 
-  const { data, error } = await sb.from('ctrl_itens').insert({
-    codigo: sel, item: limpo, ordem: maior + 1, padrao: false
-  }).select().single();
+  const linhas = EMPRESAS.map((e) => ({
+    codigo: e.codigo, item: limpo, ordem: maior + 1, padrao: false
+  }));
+  const { data, error } = await sb.from('ctrl_itens')
+    .upsert(linhas, { onConflict: 'codigo,item', ignoreDuplicates: true })
+    .select();
 
   if (error) {
     qs('#novo-salvar').disabled = false;
@@ -620,18 +669,28 @@ async function criarItem(nome) {
     sync('erro', error.message);
     return;
   }
-  aplicarItemLocal('INSERT', data);
+  (data || []).forEach((linha) => aplicarItemLocal('INSERT', linha));
   fecharFormNovo();
+  toast(`"${limpo}" criado em ${(data || []).length} empresas.`, 'ok');
   sync('ok');
 }
 
+/* Excluir remove o item do catalogo — de todas as empresas, com os dados.
+   Para tirar de uma so, o caminho e "nao se aplica". */
 async function excluirItem(id) {
   const it = acharItem(id);
   if (!it) return;
+  const alvo = normalizar(it.item);
+  const ids = [];
+  for (const lista of ITENS.values()) {
+    for (const x of lista) if (normalizar(x.item) === alvo) ids.push(x.id);
+  }
+
   sync('salvando');
-  const { error } = await sb.from('ctrl_itens').delete().eq('id', id);
+  const { error } = await sb.from('ctrl_itens').delete().in('id', ids);
   if (error) { sync('erro', error.message); toast('Não consegui excluir o item.', 'erro'); return; }
-  aplicarItemLocal('DELETE', { id });
+  ids.forEach((i) => aplicarItemLocal('DELETE', { id: i }));
+  toast(`"${it.item}" removido de ${ids.length} empresas.`, 'ok');
   sync('ok');
 }
 
@@ -650,9 +709,11 @@ function aplicarItemLocal(tipo, linha) {
     const lista = ITENS.get(linha.codigo) || [];
     const i = lista.findIndex((x) => x.id === linha.id);
     if (i >= 0) {
+      const mudouAplicacao = (lista[i].aplica !== false) !== (linha.aplica !== false);
       lista[i] = linha;
       ITENS.set(linha.codigo, lista);
-      repintarCard(linha);          /* nao faz nada se o card nao esta na tela */
+      if (mudouAplicacao) renderCards();
+      else repintarCard(linha);     /* nao faz nada se o card nao esta na tela */
     } else {
       lista.push(linha);
       ITENS.set(linha.codigo, lista);
@@ -777,9 +838,10 @@ function resumoMeses(it) {
 function dadosEmpresa(cod) {
   const e = EMPRESAS.find((x) => x.codigo === cod);
   const c = contagem(cod);
+  const foraDoControle = (ITENS.get(cod) || []).filter((i) => i.aplica === false).length;
   return {
     empresa: e,
-    itens: itensDe(cod).map((i) => ({
+    itens: itensDe(cod).filter((i) => i.aplica !== false).map((i) => ({
       item: i.item, valor: i.valor || '',
       observacao: [resumoMeses(i), i.observacao].filter(Boolean).join('\n'),
       quando: i.atualizado_em ? agora(i.atualizado_em) : ''
@@ -787,7 +849,10 @@ function dadosEmpresa(cod) {
     observacoes: (OBS.get(cod) || []).map((o) => ({
       data: agora(o.criado_em), texto: o.texto
     })),
-    resumo: `${c.sim} de ${c.total} itens conferidos · ${c.nao} com pendência · ${c.branco} em branco`
+    resumo: `${c.sim} de ${c.total} itens conferidos · ${c.nao} com pendência`
+          + ` · ${c.branco} em branco` + (foraDoControle
+            ? ` · ${foraDoControle} não se ${foraDoControle === 1 ? 'aplica' : 'aplicam'}`
+            : '')
   };
 }
 
@@ -941,6 +1006,31 @@ function ligarEventos() {
     const mes = t.closest('.mes');
     if (mes) {
       alternarMes(mes.closest('.card').dataset.id, mes.dataset.mes);
+      return;
+    }
+
+    const na = t.closest('.card-na');
+    if (na) {
+      const card = na.closest('.card');
+      const it = acharItem(card.dataset.id);
+      /* reativar e inofensivo e vai direto; desativar confirma em dois cliques */
+      if (it && it.aplica === false) { alternarAplicacao(card.dataset.id); return; }
+      if (!na.hasAttribute('data-confirm')) {
+        qsa('.card-na[data-confirm]').forEach((b) => {
+          b.removeAttribute('data-confirm');
+          b.textContent = 'não se aplica';
+        });
+        na.setAttribute('data-confirm', '');
+        na.textContent = 'confirmar';
+        setTimeout(() => {
+          if (na.isConnected && na.hasAttribute('data-confirm')) {
+            na.removeAttribute('data-confirm');
+            na.textContent = 'não se aplica';
+          }
+        }, 4000);
+        return;
+      }
+      alternarAplicacao(card.dataset.id);
       return;
     }
 

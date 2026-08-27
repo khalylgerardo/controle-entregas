@@ -30,12 +30,20 @@ para criar itens e a thread de observações gerais.
 Acima de 400 cartões a tela pede um recorte em vez de renderizar — não há leitura
 útil numa parede de mil cartões.
 
-Escolha a empresa no seletor do topo. A ficha abre com um card por item de
-conferência — cada card tem **Sim / Não** e um campo de observação daquele item.
-O card `+` no fim da grade cria um item novo só para aquela empresa.
-Qualquer card pode ser renomeado (clique no título) ou excluído — inclusive os
-que vêm por padrão, porque o que vale numa empresa não vale em outra. A exclusão
-pede confirmação em dois cliques e vale só para aquela empresa.
+Cada card tem **Sim / Não**, a faixa dos 12 meses e um campo de observação
+daquele item. O título é editável: clique para renomear.
+
+### Itens são catálogo, não propriedade da empresa
+
+O card `+` cria o item em **todas** as empresas de uma vez. Onde ele não fizer
+sentido, o botão **"não se aplica"** no pé do card o tira do controle daquela
+empresa: ele desce para a seção *Não se aplica* no fim da página, sai das
+contagens e do PDF, mas o registro fica guardado — **reativar** traz valor, meses
+e observação de volta intactos.
+
+Por isso o `×` exclui de **todas** as empresas: o item é do catálogo. Para tirar
+de uma só, o caminho é "não se aplica". Ambos pedem confirmação em dois cliques;
+reativar vai direto, por ser inofensivo.
 
 Abaixo dos cards fica a thread de **observações gerais** da empresa: cada
 registro fica datado e pode ser editado ou excluído.

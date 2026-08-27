@@ -473,7 +473,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .card-x:hover { background: var(--no-bg); border-color: var(--no); color: var(--no); }
 .card-x::after { content: "×"; }
-.card-x[data-confirm]::after { content: "excluir?"; font-size: 10px; font-weight: 600; }
+.card-x[data-confirm]::after { content: "excluir de todas"; font-size: 9.5px; font-weight: 600; }
 .card-x[data-confirm] {
   width: auto; padding: 0 7px;
   background: var(--no-bg); border-color: var(--no); color: var(--no);
@@ -1075,3 +1075,60 @@ dialog#dlg-usuarios::backdrop { background: rgba(6, 7, 9, .6); }
 }
 
 .ficha-escopo { border-left-color: var(--gold); }
+
+/* ---------- "nao se aplica" ---------- */
+.secao-cont {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-3);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.secao-nota {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  max-width: 90ch;
+}
+
+/* botao discreto no pe do cartao */
+.card-pe-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.card-na {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.card-na:hover { border-color: var(--line); background: var(--surface-2); color: var(--ink-2); }
+.card-na[data-confirm] {
+  border-color: var(--gold);
+  background: var(--gold-bg);
+  color: var(--gold);
+}
+
+/* os inativos vivem apagados: presentes, mas fora do foco */
+.inativos .card {
+  border-top-color: var(--line);
+  opacity: .62;
+  transition: opacity .12s ease;
+}
+.inativos .card:hover { opacity: 1; }
+.inativos .card .seg,
+.inativos .card .meses,
+.inativos .card .meses-t,
+.inativos .card textarea { display: none; }
+.inativos .card-na { color: var(--brand); border-color: var(--line); }
+.inativos .card-na:hover { background: var(--brand-soft); border-color: var(--brand); }
