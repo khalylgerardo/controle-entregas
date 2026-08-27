@@ -174,7 +174,9 @@ function montarSeletorEmpresas() {
    par (empresa, item). "Uma empresa, todos os itens" e "um item, varias
    empresas" deixam de ser telas rivais e viram duas combinacoes da mesma. */
 
-const LIMITE_CARTOES = 400;
+/* 27 itens x 20 empresas do Kanpek = 540: o teto precisa deixar um grupo
+   inteiro passar, e ainda barrar a carteira toda (1350). */
+const LIMITE_CARTOES = 700;
 let itensEscolhidos = new Set();   /* vazio = todos os itens */
 
 function escopoEmpresas() {
