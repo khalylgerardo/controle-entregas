@@ -70,8 +70,14 @@ function sync(estado, detalhe) {
 }
 
 /* ------------------------------------------------------------ leitura --- */
+/* Alfabetica, nao por ordem de criacao: com 27 itens, procurar "Folha" numa
+   sequencia historica e pior do que percorrer o alfabeto. `ordem` continua
+   gravado (registra quando o item nasceu), mas nao manda mais na tela.
+   sensitivity 'base' faz "Agua" e "Água" caírem no mesmo lugar; numeric evita
+   que "Item 10" venha antes de "Item 2". */
+const COMPARADOR = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 const itensDe = (cod) => (ITENS.get(cod) || [])
-  .slice().sort((a, b) => a.ordem - b.ordem || a.item.localeCompare(b.item, 'pt-BR'));
+  .slice().sort((a, b) => COMPARADOR.compare(a.item, b.item));
 
 function contagem(cod) {
   const l = (ITENS.get(cod) || []).filter((i) => i.aplica !== false);
@@ -98,7 +104,7 @@ function catalogoItens() {
   return [...mapa.values()].map((r) => {
     const nome = Object.keys(r.grafias).sort((a, b) => r.grafias[b] - r.grafias[a])[0];
     return { chave: r.chave, nome, n: r.n };
-  }).sort((a, b) => normalizar(a.nome).localeCompare(normalizar(b.nome), 'pt-BR'));
+  }).sort((a, b) => COMPARADOR.compare(a.nome, b.nome));
 }
 
 /* Para o item aberto: a linha dele em cada empresa que passa nos filtros.
