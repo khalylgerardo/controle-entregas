@@ -1132,3 +1132,6 @@ dialog#dlg-usuarios::backdrop { background: rgba(6, 7, 9, .6); }
 .inativos .card textarea { display: none; }
 .inativos .card-na { color: var(--brand); border-color: var(--line); }
 .inativos .card-na:hover { background: var(--brand-soft); border-color: var(--brand); }
+
+/* o "+ Novo item" fica depois da regua do titulo da secao */
+.secao-titulo .btn { order: 1; flex: 0 0 auto; }

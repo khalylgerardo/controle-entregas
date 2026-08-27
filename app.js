@@ -316,14 +316,14 @@ function renderCards() {
     grade.append(avisoGrade(
       `${pares.length} cartões nesta combinação — muita coisa para uma tela só. `
       + 'Escolha um grupo, uma empresa ou marque os itens que interessam.'));
+    grade.append(cardNovo());
+    renderInativos(varias);
     return;
   }
 
   for (const p of pares) grade.append(cardDe(p.item, varias ? p.empresa : null));
 
-  /* o item criado vale para todas as empresas, mas nasceria escondido se
-     houvesse filtro de item ligado */
-  if (!itensEscolhidos.size) grade.append(cardNovo());
+  grade.append(cardNovo());
 
   if (!pares.length) grade.append(avisoGrade('Nenhum cartão para esta combinação.'));
 
@@ -671,7 +671,9 @@ async function criarItem(nome) {
     sync('erro', error.message);
     return;
   }
+  if (itensEscolhidos.size) itensEscolhidos.add(normalizar(limpo));
   (data || []).forEach((linha) => aplicarItemLocal('INSERT', linha));
+  montarListaItens();
   fecharFormNovo();
   toast(`"${limpo}" criado em ${(data || []).length} empresas.`, 'ok');
   sync('ok');
@@ -985,6 +987,17 @@ function ligarEventos() {
   qs('#f-busca').addEventListener('input', aoMudarFiltro);
 
   qs('#btn-pdf').addEventListener('click', () => (sel ? pdfEmpresa() : pdfSelecao()));
+
+  /* com 27 itens o "+" do fim da grade virou scroll longo: este atalho no
+     cabecalho abre o mesmo formulario e traz o cartao para a vista */
+  qs('#btn-novo-item').addEventListener('click', () => {
+    const alvo = qs('#card-novo');
+    if (!alvo) return;
+    alvo.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    abrirFormNovo();
+    const campo = qs('#novo-nome');
+    if (campo) campo.focus();
+  });
   qs('#btn-pdf-geral').addEventListener('click', pdfGeral);
 
   qs('#obs-salvar').addEventListener('click', salvarObs);
@@ -1134,6 +1147,23 @@ function ouvirTempoReal() {
     .subscribe();
 }
 
+/* O PostgREST corta a resposta em 1000 linhas. Com 27 itens x 50 empresas sao
+   1350 cartoes: sem paginar, um terco da carteira sumia da tela sem erro
+   nenhum — a empresa parecia ter menos itens do que tem. */
+const PAGINA = 1000;
+async function buscarTudo(tabela, ordem) {
+  let de = 0, tudo = [];
+  for (;;) {
+    let consulta = sb.from(tabela).select('*').range(de, de + PAGINA - 1);
+    if (ordem) consulta = consulta.order(ordem);
+    const { data, error } = await consulta;
+    if (error) return { data: null, error };
+    tudo = tudo.concat(data);
+    if (data.length < PAGINA) return { data: tudo, error: null };
+    de += PAGINA;
+  }
+}
+
 let dadosCarregados = false;
 async function carregarDados() {
   /* trocar senha estando logado passa por aqui de novo: nao vale recarregar
@@ -1141,9 +1171,9 @@ async function carregarDados() {
   if (dadosCarregados) { render(); return; }
 
   const [emp, itens, obs] = await Promise.all([
-    sb.from('ctrl_empresas').select('*').order('ordem'),
-    sb.from('ctrl_itens').select('*'),
-    sb.from('ctrl_observacoes').select('*').order('criado_em')
+    buscarTudo('ctrl_empresas', 'ordem'),
+    buscarTudo('ctrl_itens'),
+    buscarTudo('ctrl_observacoes', 'criado_em')
   ]);
 
   const falha = emp.error || itens.error || obs.error;
