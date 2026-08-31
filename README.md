@@ -8,6 +8,24 @@ GitHub Pages sob domínio próprio, com os dados em Postgres (Supabase).
 O DNS mora na HostGator (registro CNAME `controle` -> `khalylgerardo.github.io`);
 o endereço antigo `khalylgerardo.github.io/controle-entregas` redireciona para cá.
 
+## Módulo do GrupoPro Core
+
+Este é um **módulo** da base compartilhada `GrupoPro Core`, ao lado de CRM, Agenda
+e Demonstrativos. A divisão é:
+
+| Do núcleo (não mexer aqui) | Do Controle (`ctrl_*`) |
+|---|---|
+| `empresas` — cadastro mestre | `ctrl_empresa_atributos` — grupo, regime, periodicidade |
+| `perfis` — nome do usuário | `ctrl_usuarios` — quem administra o Controle |
+| `usuario_empresas` — quais empresas a pessoa vê | `ctrl_itens`, `ctrl_observacoes` |
+| `auth.users` + gatilho `on_auth_user_created` | Edge Function `ctrl-admin-usuarios` |
+
+A chave interna é o **`empresas.id`** (uuid); o `codigo` contábil é só exibição.
+O CNPJ é guardado só com dígitos (restrição do núcleo) e formatado na tela.
+
+Ser admin do Controle não implica ser admin de outro módulo — a permissão é por
+módulo, de propósito.
+
 ## Como funciona
 
 A tela tem **dois eixos independentes** que se combinam:

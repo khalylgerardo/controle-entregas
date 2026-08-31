@@ -1,5 +1,8 @@
 /* Controle de Entregas — GrupoPro
-   Uma empresa por vez: seletor no topo, itens de conferencia em cards.
+   Modulo do GrupoPro Core: a empresa e a identidade vem do nucleo compartilhado
+   (empresas, perfis, usuario_empresas); o que e do Controle mora em ctrl_*.
+   A chave interna e o `id` (uuid) da empresa no nucleo — o `codigo` contabil
+   passa a ser so exibicao.
    Front-end estatico (GitHub Pages) sobre Postgres (Supabase).
    Acesso por usuario e senha (Supabase Auth). A chave abaixo e publicavel de
    proposito: sozinha ela nao abre nada, porque as politicas das tabelas ctrl_*
@@ -7,8 +10,8 @@
    servico e por isso vivem na Edge Function admin-usuarios, nunca aqui. */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = 'https://czbumtufqxbbvfbmjzdt.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_wRmo_lZyNkQx0OuD1OOeXg_75Aj13pT';
+const SUPABASE_URL = 'https://otdjngmdygsaizqsjwdz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_iDAZ7I8c-tj3hYvS411hvg_wbNoL2jE';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
@@ -35,6 +38,14 @@ const qsa = (s, r) => [...(r || document).querySelectorAll(s)];
 
 const normalizar = (s) => String(s || '').normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '').toUpperCase();
+
+/* o nucleo guarda so digitos (restricao do cadastro mestre); aqui volta a
+   ficar legivel */
+function formatarCnpj(v) {
+  const n = String(v || '').replace(/\D/g, '');
+  if (n.length !== 14) return v || '';
+  return `${n.slice(0,2)}.${n.slice(2,5)}.${n.slice(5,8)}/${n.slice(8,12)}-${n.slice(12)}`;
+}
 
 function agora(iso) {
   const d = iso ? new Date(iso) : new Date();
@@ -112,7 +123,7 @@ function catalogoItens() {
 function linhasDoItem(chave) {
   const saida = [];
   for (const e of filtradas()) {
-    const it = (ITENS.get(e.codigo) || [])
+    const it = (ITENS.get(e.id) || [])
       .find((x) => normalizar(x.item) === chave && x.aplica !== false);
     if (it) saida.push({ empresa: e, item: it });
   }
@@ -135,7 +146,7 @@ function contagemItem(chave) {
 function contagensPorItem() {
   const mapa = new Map();
   for (const e of filtradas()) {
-    for (const it of (ITENS.get(e.codigo) || [])) {
+    for (const it of (ITENS.get(e.id) || [])) {
       if (it.aplica === false) continue;
       const k = normalizar(it.item);
       let c = mapa.get(k);
@@ -178,14 +189,14 @@ function montarSeletorEmpresas() {
   el.textContent = '';
   el.append(new Option(lista.length ? '— todas as empresas do filtro —' : '— nenhuma empresa no filtro —', ''));
   for (const e of lista) {
-    const c = contagem(e.codigo);
+    const c = contagem(e.id);
     const marca = c.nao ? '!' : (c.total && c.sim === c.total) ? '✓' : '·';
-    el.append(new Option(`${marca}  ${e.codigo} — ${e.empresa}`, e.codigo));
+    el.append(new Option(`${marca}  ${e.codigo} — ${e.empresa}`, e.id));
   }
   qs('#contagem').textContent = lista.length === EMPRESAS.length
     ? `${EMPRESAS.length} empresas`
     : `${lista.length} de ${EMPRESAS.length} empresas`;
-  el.value = (atual && lista.some((e) => e.codigo === atual)) ? atual : '';
+  el.value = (atual && lista.some((e) => e.id === atual)) ? atual : '';
 }
 
 
@@ -208,7 +219,7 @@ let itensEscolhidos = new Set();   /* vazio = todos os itens */
 function escopoEmpresas() {
   const cod = qs('#f-empresa').value;
   const base = filtradas();
-  return cod ? base.filter((e) => e.codigo === cod) : base;
+  return cod ? base.filter((e) => e.id === cod) : base;
 }
 
 /* Sem nenhum recorte nao ha o que mostrar: 50 empresas x 37 itens seriam
@@ -221,7 +232,7 @@ function haEscopo() {
 function paresPorAplicacao(aplica) {
   const pares = [];
   for (const e of escopoEmpresas()) {
-    for (const it of itensDe(e.codigo)) {
+    for (const it of itensDe(e.id)) {
       if ((it.aplica !== false) !== aplica) continue;
       if (itensEscolhidos.size && !itensEscolhidos.has(normalizar(it.item))) continue;
       pares.push({ empresa: e, item: it });
@@ -302,7 +313,7 @@ function render() {
   const empresas = escopoEmpresas();
   const unica = empresas.length === 1 ? empresas[0] : null;
   /* sel alimenta as observacoes gerais, que so existem com uma empresa */
-  sel = unica ? unica.codigo : null;
+  sel = unica ? unica.id : null;
   try { sel ? localStorage.setItem(K_SEL, sel) : localStorage.removeItem(K_SEL); } catch { /* privado */ }
 
   qs('#ficha-empresa').hidden = !unica;
@@ -714,10 +725,10 @@ async function criarItem(nome) {
   sync('salvando');
 
   const linhas = EMPRESAS.map((e) => ({
-    codigo: e.codigo, item: limpo, ordem: maior + 1, padrao: false
+    empresa_id: e.id, item: limpo, ordem: maior + 1, padrao: false
   }));
   const { data, error } = await sb.from('ctrl_itens')
-    .upsert(linhas, { onConflict: 'codigo,item', ignoreDuplicates: true })
+    .upsert(linhas, { onConflict: 'empresa_id,item', ignoreDuplicates: true })
     .select();
 
   if (error) {
@@ -763,17 +774,17 @@ function aplicarEstadoItem(tipo, linha) {
     }
     return false;
   }
-  const lista = ITENS.get(linha.codigo) || [];
+  const lista = ITENS.get(linha.empresa_id) || [];
   const i = lista.findIndex((x) => x.id === linha.id);
   if (i >= 0) {
     const mudouGrade = (lista[i].aplica !== false) !== (linha.aplica !== false);
     lista[i] = linha;
-    ITENS.set(linha.codigo, lista);
+    ITENS.set(linha.empresa_id, lista);
     if (!mudouGrade) repintarCard(linha);   /* nao faz nada se nao esta na tela */
     return mudouGrade;
   }
   lista.push(linha);
-  ITENS.set(linha.codigo, lista);
+  ITENS.set(linha.empresa_id, lista);
   return true;
 }
 
@@ -853,7 +864,7 @@ async function salvarObs() {
       aplicarObsLocal('UPDATE', data);
     } else {
       const { data, error } = await sb.from('ctrl_observacoes')
-        .insert({ codigo: sel, texto }).select().single();
+        .insert({ empresa_id: sel, texto }).select().single();
       if (error) throw error;
       aplicarObsLocal('INSERT', data);
     }
@@ -883,11 +894,11 @@ function aplicarObsLocal(tipo, linha) {
       if (i >= 0) { lista.splice(i, 1); break; }
     }
   } else {
-    const lista = OBS.get(linha.codigo) || [];
+    const lista = OBS.get(linha.empresa_id) || [];
     const i = lista.findIndex((o) => o.id === linha.id);
     if (i >= 0) lista[i] = linha; else lista.push(linha);
     lista.sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
-    OBS.set(linha.codigo, lista);
+    OBS.set(linha.empresa_id, lista);
   }
   renderObs();
 }
@@ -910,7 +921,7 @@ function resumoMeses(it) {
 }
 
 function dadosEmpresa(cod) {
-  const e = EMPRESAS.find((x) => x.codigo === cod);
+  const e = EMPRESAS.find((x) => x.id === cod);
   const c = contagem(cod);
   const foraDoControle = (ITENS.get(cod) || []).filter((i) => i.aplica === false).length;
   return {
@@ -1221,10 +1232,10 @@ function ouvirTempoReal() {
    1350 cartoes: sem paginar, um terco da carteira sumia da tela sem erro
    nenhum — a empresa parecia ter menos itens do que tem. */
 const PAGINA = 1000;
-async function buscarTudo(tabela, ordem) {
+async function buscarTudo(tabela, ordem, colunas) {
   let de = 0, tudo = [];
   for (;;) {
-    let consulta = sb.from(tabela).select('*').range(de, de + PAGINA - 1);
+    let consulta = sb.from(tabela).select(colunas || '*').range(de, de + PAGINA - 1);
     if (ordem) consulta = consulta.order(ordem);
     const { data, error } = await consulta;
     if (error) return { data: null, error };
@@ -1241,7 +1252,8 @@ async function carregarDados() {
   if (dadosCarregados) { render(); return; }
 
   const [emp, itens, obs] = await Promise.all([
-    buscarTudo('ctrl_empresas', 'ordem'),
+    buscarTudo('empresas', 'codigo',
+      'id, codigo, razao_social, cnpj, ctrl_empresa_atributos(grupo,regional,regime,atividade,periodicidade)'),
     buscarTudo('ctrl_itens'),
     buscarTudo('ctrl_observacoes', 'criado_em')
   ]);
@@ -1253,15 +1265,23 @@ async function carregarDados() {
     return;
   }
 
-  EMPRESAS = emp.data.map((e) => ({
-    ...e,
-    _busca: normalizar([e.codigo, e.empresa, e.cnpj, e.grupo, e.regional].join(' '))
-  }));
+  EMPRESAS = emp.data.map((e) => {
+    const a = e.ctrl_empresa_atributos || {};
+    return {
+      id: e.id,
+      codigo: String(e.codigo ?? ''),      /* contabil, so exibicao */
+      empresa: e.razao_social,
+      cnpj: formatarCnpj(e.cnpj),
+      grupo: a.grupo || '', regional: a.regional || '', regime: a.regime || '',
+      atividade: a.atividade || '', periodicidade: a.periodicidade || '',
+      _busca: normalizar([e.codigo, e.razao_social, e.cnpj, a.grupo, a.regional].join(' '))
+    };
+  });
   itens.data.forEach((i) => {
-    const l = ITENS.get(i.codigo) || []; l.push(i); ITENS.set(i.codigo, l);
+    const l = ITENS.get(i.empresa_id) || []; l.push(i); ITENS.set(i.empresa_id, l);
   });
   obs.data.forEach((o) => {
-    const l = OBS.get(o.codigo) || []; l.push(o); OBS.set(o.codigo, l);
+    const l = OBS.get(o.empresa_id) || []; l.push(o); OBS.set(o.empresa_id, l);
   });
 
   preencherSelect('#f-grupo', EMPRESAS.map((e) => e.grupo), 'Todos');
@@ -1270,7 +1290,7 @@ async function carregarDados() {
 
   let inicial = null;
   try { inicial = localStorage.getItem(K_SEL); } catch { /* privado */ }
-  if (inicial && EMPRESAS.some((e) => e.codigo === inicial)) sel = inicial;
+  if (inicial && EMPRESAS.some((e) => e.id === inicial)) sel = inicial;
 
   montarSeletorEmpresas();
   dadosCarregados = true;
@@ -1393,7 +1413,7 @@ async function chamarAdmin(corpo) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) throw new Error('Sessão expirada. Entre novamente.');
 
-  const resp = await fetch(SUPABASE_URL + '/functions/v1/admin-usuarios', {
+  const resp = await fetch(SUPABASE_URL + '/functions/v1/ctrl-admin-usuarios', {
     method: 'POST',
     headers: {
       'Authorization': 'Bearer ' + session.access_token,
@@ -1429,7 +1449,8 @@ function linhaUsuario(u) {
   ident.className = 'usuario-id';
   ident.append(
     Object.assign(document.createElement('span'), { className: 'usuario-login', textContent: u.usuario }),
-    Object.assign(document.createElement('span'), { className: 'usuario-nome', textContent: u.nome || '—' })
+    Object.assign(document.createElement('span'),
+      { className: 'usuario-nome', textContent: (u.perfis && u.perfis.nome) || '—' })
   );
   el.append(ident);
 
@@ -1456,7 +1477,8 @@ function linhaUsuario(u) {
 async function renderUsuarios() {
   const lista = qs('#usuarios-lista');
   lista.textContent = 'Carregando…';
-  const { data, error } = await sb.from('ctrl_usuarios').select('*').order('usuario');
+  const { data, error } = await sb.from('ctrl_usuarios')
+    .select('id, usuario, admin, trocar_senha, perfis(nome)').order('usuario');
   lista.textContent = '';
   if (error) { lista.textContent = 'Não consegui carregar os acessos.'; return; }
   data.forEach((u) => lista.append(linhaUsuario(u)));
